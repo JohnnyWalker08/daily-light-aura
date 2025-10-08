@@ -8,7 +8,7 @@ const Index = () => {
         {/* Hero Section */}
         <div className="text-center mb-12 animate-fade-in-up">
           <h1 className="text-5xl md:text-7xl font-display font-bold gradient-text mb-4 animate-float">
-            Ajayi John's Bible
+            Johnny's Bible
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
             Experience God's word in a whole new way. Daily verses, reading plans, and spiritual growth.
