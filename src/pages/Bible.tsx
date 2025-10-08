@@ -23,12 +23,31 @@ export default function Bible() {
 
   const loadChapter = async () => {
     setLoading(true);
+    const cacheKey = `bible-${book}-${chapter}`;
+    
     try {
+      // Try to load from cache first for instant display
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) {
+        setVerses(JSON.parse(cached));
+        setLoading(false);
+      }
+      
+      // Try to fetch fresh data from API
       const response = await fetch(`https://bible-api.com/${book}+${chapter}`);
       const data = await response.json();
+      
+      // Cache the data for offline use
+      localStorage.setItem(cacheKey, JSON.stringify(data));
       setVerses(data);
     } catch (error) {
-      toast.error("Failed to load chapter");
+      // If we already showed cached data, just inform user
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) {
+        toast.info("Showing offline version");
+      } else {
+        toast.error("This chapter is not available offline yet. View it once while online to cache it.");
+      }
     } finally {
       setLoading(false);
     }

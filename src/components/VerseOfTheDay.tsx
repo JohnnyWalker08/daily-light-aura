@@ -16,21 +16,35 @@ export const VerseOfTheDay = () => {
   const [isBookmarked, setIsBookmarked] = useState(false);
 
   useEffect(() => {
+    const cacheKey = "verse-of-the-day";
+    
+    // Try to load from cache first
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+      setVerse(JSON.parse(cached));
+      setLoading(false);
+    }
+    
     // Fetch verse of the day - using John 3:16 as featured verse
     fetch("https://bible-api.com/john 3:16")
       .then((res) => res.json())
       .then((data) => {
-        setVerse({
+        const verseData = {
           reference: data.reference,
           text: data.text.trim(),
-        });
+        };
+        setVerse(verseData);
+        localStorage.setItem(cacheKey, JSON.stringify(verseData));
         setLoading(false);
       })
       .catch(() => {
-        setVerse({
-          reference: "John 3:16",
-          text: "For God so loved the world that he gave his one and only Son, that whoever believes in him shall not perish but have eternal life.",
-        });
+        // Only set fallback if we don't have cached data
+        if (!cached) {
+          setVerse({
+            reference: "John 3:16",
+            text: "For God so loved the world that he gave his one and only Son, that whoever believes in him shall not perish but have eternal life.",
+          });
+        }
         setLoading(false);
       });
 
