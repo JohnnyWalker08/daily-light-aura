@@ -16,11 +16,6 @@ const Index = () => {
           </p>
         </div>
 
-        {/* Offline Download */}
-        <div className="mb-12">
-          <OfflineDownload />
-        </div>
-
         {/* Verse of the Day */}
         <div className="mb-12">
           <VerseOfTheDay />
@@ -32,6 +27,11 @@ const Index = () => {
             Continue Your Journey
           </h2>
           <QuickActions />
+        </div>
+
+        {/* Offline Download */}
+        <div className="mb-12">
+          <OfflineDownload />
         </div>
       </div>
     </div>
