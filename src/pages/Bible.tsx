@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChevronLeft, ChevronRight, Bookmark } from "lucide-react";
 import { toast } from "sonner";
+import { getChapter, saveChapter } from "@/lib/offlineBible";
 
 const BOOKS = [
   // Old Testament (39 books)
@@ -36,9 +37,22 @@ export default function Bible() {
   const loadChapter = async () => {
     setLoading(true);
     try {
+      // Try to get from offline storage first
+      const offlineData = await getChapter(book, parseInt(chapter));
+      
+      if (offlineData) {
+        setVerses(offlineData);
+        setLoading(false);
+        return;
+      }
+
+      // Fallback to online fetch
       const response = await fetch(`https://bible-api.com/${book}+${chapter}?translation=kjv`);
       const data = await response.json();
       setVerses(data);
+      
+      // Save to offline storage for future use
+      await saveChapter(book, parseInt(chapter), data);
     } catch (error) {
       toast.error("Failed to load chapter");
     } finally {

@@ -1,5 +1,6 @@
 import { VerseOfTheDay } from "@/components/VerseOfTheDay";
 import { QuickActions } from "@/components/QuickActions";
+import { OfflineDownload } from "@/components/OfflineDownload";
 
 const Index = () => {
   return (
@@ -13,6 +14,11 @@ const Index = () => {
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
             Experience God's word in a whole new way. Daily verses, reading plans, and spiritual growth.
           </p>
+        </div>
+
+        {/* Offline Download */}
+        <div className="mb-12">
+          <OfflineDownload />
         </div>
 
         {/* Verse of the Day */}
