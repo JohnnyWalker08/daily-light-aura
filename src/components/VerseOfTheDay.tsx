@@ -10,14 +10,40 @@ interface Verse {
   text: string;
 }
 
+// Morning verses (5 AM - 12 PM)
+const MORNING_VERSES = [
+  "Psalm 5:3", "Psalm 90:14", "Lamentations 3:22-23", "Psalm 143:8", 
+  "Psalm 118:24", "Proverbs 3:5-6", "Isaiah 40:31", "Psalm 46:5"
+];
+
+// Evening verses (12 PM - 11 PM)
+const EVENING_VERSES = [
+  "Psalm 4:8", "Matthew 11:28", "Philippians 4:6-7", "Psalm 91:1-2",
+  "John 14:27", "Psalm 23:1-3", "1 Peter 5:7", "Psalm 121:3-4"
+];
+
+const getVerseForTimeOfDay = () => {
+  const hour = new Date().getHours();
+  const isMorning = hour >= 5 && hour < 12;
+  const verseList = isMorning ? MORNING_VERSES : EVENING_VERSES;
+  
+  // Use day of year to select verse so it changes daily
+  const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
+  const index = dayOfYear % verseList.length;
+  
+  return verseList[index];
+};
+
 export const VerseOfTheDay = () => {
   const [verse, setVerse] = useState<Verse | null>(null);
   const [loading, setLoading] = useState(true);
   const [isBookmarked, setIsBookmarked] = useState(false);
 
   useEffect(() => {
-    // Fetch verse of the day - using John 3:16 as featured verse (KJV)
-    fetch("https://bible-api.com/john 3:16?translation=kjv")
+    const selectedVerse = getVerseForTimeOfDay();
+    
+    // Fetch the selected verse (KJV)
+    fetch(`https://bible-api.com/${selectedVerse}?translation=kjv`)
       .then((res) => res.json())
       .then((data) => {
         setVerse({
@@ -25,18 +51,19 @@ export const VerseOfTheDay = () => {
           text: data.text.trim(),
         });
         setLoading(false);
+        
+        // Check if bookmarked
+        const bookmarks = JSON.parse(localStorage.getItem("bookmarks") || "[]");
+        setIsBookmarked(bookmarks.some((b: Verse) => b.reference === data.reference));
       })
       .catch(() => {
+        // Fallback
         setVerse({
-          reference: "John 3:16",
-          text: "For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life.",
+          reference: "Psalm 118:24",
+          text: "This is the day which the LORD hath made; we will rejoice and be glad in it.",
         });
         setLoading(false);
       });
-
-    // Check if bookmarked
-    const bookmarks = JSON.parse(localStorage.getItem("bookmarks") || "[]");
-    setIsBookmarked(bookmarks.some((b: Verse) => b.reference === "John 3:16"));
   }, []);
 
   const handleShare = () => {
@@ -55,10 +82,11 @@ export const VerseOfTheDay = () => {
     if (!verse) return;
     
     const bookmarks = JSON.parse(localStorage.getItem("bookmarks") || "[]");
+    const existingIndex = bookmarks.findIndex((b: Verse) => b.reference === verse.reference);
     
-    if (isBookmarked) {
-      const filtered = bookmarks.filter((b: Verse) => b.reference !== verse.reference);
-      localStorage.setItem("bookmarks", JSON.stringify(filtered));
+    if (existingIndex >= 0) {
+      bookmarks.splice(existingIndex, 1);
+      localStorage.setItem("bookmarks", JSON.stringify(bookmarks));
       setIsBookmarked(false);
       toast.success("Removed from bookmarks");
     } else {
