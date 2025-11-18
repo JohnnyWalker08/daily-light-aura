@@ -16,8 +16,8 @@ export const VerseOfTheDay = () => {
   const [isBookmarked, setIsBookmarked] = useState(false);
 
   useEffect(() => {
-    // Fetch verse of the day - using John 3:16 as featured verse
-    fetch("https://bible-api.com/john 3:16")
+    // Fetch verse of the day - using John 3:16 as featured verse (KJV)
+    fetch("https://bible-api.com/john 3:16?translation=kjv")
       .then((res) => res.json())
       .then((data) => {
         setVerse({
@@ -29,7 +29,7 @@ export const VerseOfTheDay = () => {
       .catch(() => {
         setVerse({
           reference: "John 3:16",
-          text: "For God so loved the world that he gave his one and only Son, that whoever believes in him shall not perish but have eternal life.",
+          text: "For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life.",
         });
         setLoading(false);
       });

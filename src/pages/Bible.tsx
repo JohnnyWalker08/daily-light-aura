@@ -6,9 +6,21 @@ import { ChevronLeft, ChevronRight, Bookmark } from "lucide-react";
 import { toast } from "sonner";
 
 const BOOKS = [
+  // Old Testament (39 books)
   "Genesis", "Exodus", "Leviticus", "Numbers", "Deuteronomy",
-  "Joshua", "Judges", "Ruth", "1 Samuel", "2 Samuel",
-  "Matthew", "Mark", "Luke", "John", "Romans",
+  "Joshua", "Judges", "Ruth", "1 Samuel", "2 Samuel", "1 Kings", "2 Kings",
+  "1 Chronicles", "2 Chronicles", "Ezra", "Nehemiah", "Esther",
+  "Job", "Psalms", "Proverbs", "Ecclesiastes", "Song of Solomon",
+  "Isaiah", "Jeremiah", "Lamentations", "Ezekiel", "Daniel",
+  "Hosea", "Joel", "Amos", "Obadiah", "Jonah", "Micah", "Nahum",
+  "Habakkuk", "Zephaniah", "Haggai", "Zechariah", "Malachi",
+  // New Testament (27 books)
+  "Matthew", "Mark", "Luke", "John", "Acts",
+  "Romans", "1 Corinthians", "2 Corinthians", "Galatians", "Ephesians",
+  "Philippians", "Colossians", "1 Thessalonians", "2 Thessalonians",
+  "1 Timothy", "2 Timothy", "Titus", "Philemon",
+  "Hebrews", "James", "1 Peter", "2 Peter",
+  "1 John", "2 John", "3 John", "Jude", "Revelation",
 ];
 
 export default function Bible() {
@@ -24,7 +36,7 @@ export default function Bible() {
   const loadChapter = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`https://bible-api.com/${book}+${chapter}`);
+      const response = await fetch(`https://bible-api.com/${book}+${chapter}?translation=kjv`);
       const data = await response.json();
       setVerses(data);
     } catch (error) {
