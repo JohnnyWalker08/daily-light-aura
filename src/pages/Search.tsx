@@ -20,7 +20,7 @@ export default function Search() {
 
     setLoading(true);
     try {
-      const response = await fetch(`https://bible-api.com/${query}`);
+      const response = await fetch(`https://bible-api.com/${query}?translation=kjv`);
       const data = await response.json();
       
       if (data.verses) {
