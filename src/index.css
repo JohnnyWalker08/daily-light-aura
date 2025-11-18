@@ -8,130 +8,117 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Royal Blue → Indigo Divine Gradient */
-    --background: 240 25% 98%;
-    --foreground: 240 15% 12%;
+    /* Spiritual Purple → Indigo Gradient */
+    --background: 240 20% 98%;
+    --foreground: 240 10% 15%;
 
-    /* Premium Glass Cards */
-    --card: 0 0% 100%;
-    --card-foreground: 240 15% 12%;
+    /* Glass Cards with Subtle Tint */
+    --card: 240 30% 99%;
+    --card-foreground: 240 10% 15%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 15% 12%;
+    --popover: 240 30% 99%;
+    --popover-foreground: 240 10% 15%;
 
-    /* Royal Blue Primary */
-    --primary: 238 75% 59%;
+    /* Deep Spiritual Purple */
+    --primary: 260 60% 50%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 238 85% 70%;
-    --primary-deep: 238 70% 45%;
+    --primary-glow: 260 80% 65%;
 
-    /* Elegant Secondary */
-    --secondary: 240 30% 96%;
-    --secondary-foreground: 240 15% 15%;
+    /* Soft Glass Secondary */
+    --secondary: 240 20% 96%;
+    --secondary-foreground: 240 10% 20%;
 
-    /* Refined Muted Tones */
-    --muted: 240 20% 95%;
-    --muted-foreground: 240 10% 45%;
+    /* Muted Peaceful Tones */
+    --muted: 240 15% 94%;
+    --muted-foreground: 240 8% 50%;
 
-    /* Divine Gold Accent */
-    --accent: 43 96% 56%;
-    --accent-foreground: 240 15% 12%;
-    --accent-glow: 43 100% 65%;
+    /* Celestial Gold Accent */
+    --accent: 45 90% 60%;
+    --accent-foreground: 240 10% 15%;
+    --accent-glow: 45 100% 70%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    /* Refined Borders */
-    --border: 240 25% 92%;
-    --input: 240 25% 94%;
-    --ring: 238 75% 59%;
+    /* Soft Borders */
+    --border: 240 20% 90%;
+    --input: 240 20% 92%;
+    --ring: 260 60% 50%;
 
     --radius: 1rem;
 
-    /* Divine Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(238 75% 59%), hsl(245 70% 65%));
-    --gradient-royal: linear-gradient(135deg, hsl(238 75% 59%), hsl(43 96% 56%));
-    --gradient-celestial: linear-gradient(135deg, hsl(240 50% 96%), hsl(238 40% 98%));
-    --gradient-divine: linear-gradient(180deg, hsl(238 75% 98%), hsl(238 60% 96%));
-    --gradient-glass: linear-gradient(135deg, hsla(0, 0%, 100%, 0.9), hsla(240, 30%, 99%, 0.7));
-    --gradient-verse-bg: linear-gradient(180deg, hsl(238 75% 98%), hsl(0 0% 100%));
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(260 60% 50%), hsl(240 70% 55%));
+    --gradient-celestial: linear-gradient(135deg, hsl(240 50% 90%), hsl(260 40% 95%));
+    --gradient-dawn: linear-gradient(180deg, hsl(45 80% 90%), hsl(35 70% 95%));
+    --gradient-glass: linear-gradient(135deg, hsla(240, 30%, 99%, 0.7), hsla(260, 30%, 99%, 0.5));
 
-    /* Premium Glass Effects */
-    --glass-bg: hsla(0, 0%, 100%, 0.85);
-    --glass-border: hsla(238, 75%, 70%, 0.15);
-    --glass-highlight: hsla(0, 0%, 100%, 0.4);
+    /* Glass Effects */
+    --glass-bg: hsla(240, 30%, 99%, 0.6);
+    --glass-border: hsla(240, 50%, 90%, 0.3);
     
-    /* Elegant Shadows */
-    --shadow-soft: 0 10px 40px hsla(238, 75%, 59%, 0.08);
-    --shadow-glow: 0 0 60px hsla(238, 85%, 70%, 0.25);
-    --shadow-card: 0 2px 20px hsla(238, 40%, 30%, 0.06);
-    --shadow-verse: 0 4px 30px hsla(238, 60%, 50%, 0.05);
-    --shadow-premium: 0 20px 60px -10px hsla(238, 75%, 59%, 0.15);
+    /* Shadows */
+    --shadow-soft: 0 8px 32px hsla(260, 60%, 50%, 0.12);
+    --shadow-glow: 0 0 40px hsla(260, 80%, 65%, 0.3);
+    --shadow-card: 0 4px 24px hsla(240, 20%, 20%, 0.08);
 
-    /* Smooth Animations */
+    /* Animations */
     --transition-smooth: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     --transition-bounce: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-    --transition-elegant: all 0.6s cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   .dark {
-    /* Midnight Divine */
-    --background: 240 35% 6%;
-    --foreground: 240 20% 96%;
+    /* Deep Night Sky */
+    --background: 240 30% 8%;
+    --foreground: 240 15% 95%;
 
-    /* Dark Premium Glass */
-    --card: 240 30% 10%;
-    --card-foreground: 240 20% 96%;
+    /* Dark Glass Cards */
+    --card: 240 25% 12%;
+    --card-foreground: 240 15% 95%;
 
-    --popover: 240 30% 10%;
-    --popover-foreground: 240 20% 96%;
+    --popover: 240 25% 12%;
+    --popover-foreground: 240 15% 95%;
 
-    /* Luminous Blue for Dark */
-    --primary: 238 80% 65%;
+    /* Vibrant Purple for Dark Mode */
+    --primary: 260 70% 60%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 238 90% 75%;
-    --primary-deep: 238 75% 55%;
+    --primary-glow: 260 90% 70%;
 
-    /* Dark Elegant Secondary */
-    --secondary: 240 25% 15%;
-    --secondary-foreground: 240 20% 92%;
+    /* Dark Glass Secondary */
+    --secondary: 240 20% 18%;
+    --secondary-foreground: 240 15% 90%;
 
-    /* Dark Refined Muted */
-    --muted: 240 25% 14%;
-    --muted-foreground: 240 12% 55%;
+    /* Dark Muted */
+    --muted: 240 20% 16%;
+    --muted-foreground: 240 10% 60%;
 
-    /* Radiant Gold */
-    --accent: 43 96% 60%;
-    --accent-foreground: 240 35% 6%;
-    --accent-glow: 43 100% 70%;
+    /* Golden Accent */
+    --accent: 45 85% 55%;
+    --accent-foreground: 240 30% 8%;
+    --accent-glow: 45 100% 65%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    /* Dark Premium Borders */
-    --border: 240 25% 18%;
-    --input: 240 25% 16%;
-    --ring: 238 80% 65%;
+    /* Dark Borders */
+    --border: 240 20% 22%;
+    --input: 240 20% 20%;
+    --ring: 260 70% 60%;
 
-    /* Dark Divine Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(238 80% 65%), hsl(245 75% 70%));
-    --gradient-royal: linear-gradient(135deg, hsl(238 80% 65%), hsl(43 96% 60%));
-    --gradient-celestial: linear-gradient(135deg, hsl(240 30% 12%), hsl(238 25% 15%));
-    --gradient-divine: linear-gradient(180deg, hsl(238 60% 12%), hsl(240 35% 6%));
-    --gradient-glass: linear-gradient(135deg, hsla(240, 30%, 10%, 0.9), hsla(238, 25%, 12%, 0.7));
-    --gradient-verse-bg: linear-gradient(180deg, hsl(238 50% 10%), hsl(240 30% 8%));
+    /* Dark Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(260 70% 60%), hsl(240 80% 65%));
+    --gradient-celestial: linear-gradient(135deg, hsl(240 30% 15%), hsl(260 25% 18%));
+    --gradient-dawn: linear-gradient(180deg, hsl(45 50% 25%), hsl(35 40% 20%));
+    --gradient-glass: linear-gradient(135deg, hsla(240, 25%, 12%, 0.8), hsla(260, 25%, 14%, 0.6));
 
-    /* Dark Premium Glass */
-    --glass-bg: hsla(240, 30%, 10%, 0.85);
-    --glass-border: hsla(238, 80%, 65%, 0.2);
-    --glass-highlight: hsla(238, 80%, 90%, 0.05);
+    /* Dark Glass */
+    --glass-bg: hsla(240, 25%, 12%, 0.7);
+    --glass-border: hsla(260, 40%, 40%, 0.2);
 
-    /* Dark Elegant Shadows */
-    --shadow-soft: 0 10px 40px hsla(0, 0%, 0%, 0.5);
-    --shadow-glow: 0 0 60px hsla(238, 90%, 75%, 0.3);
-    --shadow-card: 0 2px 20px hsla(0, 0%, 0%, 0.4);
-    --shadow-verse: 0 4px 30px hsla(238, 80%, 50%, 0.15);
-    --shadow-premium: 0 20px 60px -10px hsla(238, 80%, 65%, 0.25);
+    /* Dark Shadows with Glow */
+    --shadow-soft: 0 8px 32px hsla(0, 0%, 0%, 0.4);
+    --shadow-glow: 0 0 50px hsla(260, 90%, 70%, 0.25);
+    --shadow-card: 0 4px 24px hsla(0, 0%, 0%, 0.3);
   }
 }
 
@@ -142,111 +129,41 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
-    background: linear-gradient(180deg, hsl(var(--background)) 0%, hsl(240 25% 99%) 100%);
-  }
-
-  .dark body {
-    background: linear-gradient(180deg, hsl(var(--background)) 0%, hsl(240 35% 8%) 100%);
   }
 
   /* Smooth scrolling */
   html {
     scroll-behavior: smooth;
   }
-
-  /* Verse Reading Typography */
-  .verse-text {
-    @apply text-lg leading-loose tracking-wide;
-    font-family: 'Playfair Display', Georgia, serif;
-    text-align: justify;
-    hyphens: auto;
-  }
-
-  .verse-number {
-    @apply text-xs font-semibold;
-    font-family: 'Inter', sans-serif;
-    color: hsl(var(--primary) / 0.5);
-  }
 }
 
 @layer components {
-  /* Premium Glass Card */
+  /* Glass Card Effect */
   .glass-card {
     background: var(--glass-bg);
-    backdrop-filter: blur(30px);
-    -webkit-backdrop-filter: blur(30px);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     border: 1px solid var(--glass-border);
     box-shadow: var(--shadow-card);
-    position: relative;
-    overflow: hidden;
-  }
-
-  .glass-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: var(--glass-highlight);
-  }
-
-  /* Premium Verse Card */
-  .verse-card {
-    @apply glass-card;
-    box-shadow: var(--shadow-verse);
-    transition: var(--transition-smooth);
-  }
-
-  .verse-card:hover {
-    box-shadow: var(--shadow-premium);
-    transform: translateY(-2px);
   }
 
   /* Gradient Text */
   .gradient-text {
-    background: var(--gradient-royal);
+    background: var(--gradient-primary);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
   }
 
-  /* Divine Glow Button */
+  /* Neon Glow Button */
   .btn-glow {
-    box-shadow: 0 0 30px hsla(var(--primary-glow), 0.3);
-    transition: var(--transition-elegant);
-    position: relative;
-  }
-
-  .btn-glow::before {
-    content: '';
-    position: absolute;
-    inset: -2px;
-    border-radius: inherit;
-    padding: 2px;
-    background: var(--gradient-royal);
-    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    opacity: 0;
-    transition: var(--transition-elegant);
-  }
-
-  .btn-glow:hover::before {
-    opacity: 1;
+    box-shadow: 0 0 20px hsla(var(--accent-glow), 0.4);
+    transition: var(--transition-smooth);
   }
 
   .btn-glow:hover {
-    box-shadow: 0 0 50px hsla(var(--primary-glow), 0.5);
-    transform: translateY(-3px);
-  }
-
-  /* Sacred Background Pattern */
-  .sacred-pattern {
-    background-image: 
-      radial-gradient(circle at 20% 50%, hsla(238, 75%, 59%, 0.05) 0%, transparent 50%),
-      radial-gradient(circle at 80% 80%, hsla(43, 96%, 56%, 0.03) 0%, transparent 50%),
-      radial-gradient(circle at 40% 20%, hsla(238, 75%, 59%, 0.03) 0%, transparent 50%);
+    box-shadow: 0 0 30px hsla(var(--accent-glow), 0.6);
+    transform: translateY(-2px);
   }
 
   /* Floating Animation */

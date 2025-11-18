@@ -19,38 +19,20 @@ export default function Search() {
     if (!query.trim()) return;
 
     setLoading(true);
-    const cacheKey = `search-${query.toLowerCase()}`;
-    
     try {
-      // Try to load from cache first
-      const cached = localStorage.getItem(cacheKey);
-      if (cached) {
-        setResults(JSON.parse(cached));
-        setLoading(false);
-      }
-      
-      // Try to fetch fresh data
       const response = await fetch(`https://bible-api.com/${query}`);
       const data = await response.json();
       
       if (data.verses) {
-        const searchResults = data.verses.map((v: any) => ({
+        setResults(data.verses.map((v: any) => ({
           reference: `${data.reference.split(':')[0]}:${v.verse}`,
           text: v.text,
-        }));
-        setResults(searchResults);
-        localStorage.setItem(cacheKey, JSON.stringify(searchResults));
+        })));
       } else {
         toast.error("No results found. Try 'love', 'faith', or a reference like 'John 3:16'");
       }
     } catch (error) {
-      // If we have cached results, we already showed them
-      const cached = localStorage.getItem(cacheKey);
-      if (cached) {
-        toast.info("Showing offline results");
-      } else {
-        toast.error("This search is not available offline. Search once while online to cache it.");
-      }
+      toast.error("Search failed. Try a verse reference like 'John 3:16'");
     } finally {
       setLoading(false);
     }
