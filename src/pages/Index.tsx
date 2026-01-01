@@ -3,6 +3,7 @@ import { QuickActions } from "@/components/QuickActions";
 import { OfflineDownload } from "@/components/OfflineDownload";
 import { ReadingProgressCard } from "@/components/ReadingProgress";
 import { TodaysReadingCard } from "@/components/ReadingPlans";
+import { DailyDevotional } from "@/components/DailyDevotional";
 import { getActivePlans } from "@/lib/plansStorage";
 import { useState, useEffect } from "react";
 
@@ -26,6 +27,11 @@ const Index = () => {
         </div>
 
         <div className="mb-12"><VerseOfTheDay /></div>
+
+        {/* Daily Devotional Widget */}
+        <div className="mb-12">
+          <DailyDevotional />
+        </div>
 
         <div className="grid md:grid-cols-2 gap-6 mb-12">
           <ReadingProgressCard />
