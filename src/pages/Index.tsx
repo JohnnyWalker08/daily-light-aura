@@ -1,12 +1,21 @@
 import { VerseOfTheDay } from "@/components/VerseOfTheDay";
 import { QuickActions } from "@/components/QuickActions";
 import { OfflineDownload } from "@/components/OfflineDownload";
+import { ReadingProgressCard } from "@/components/ReadingProgress";
+import { TodaysReadingCard } from "@/components/ReadingPlans";
+import { getActivePlans } from "@/lib/plansStorage";
+import { useState, useEffect } from "react";
 
 const Index = () => {
+  const [hasActivePlans, setHasActivePlans] = useState(false);
+
+  useEffect(() => {
+    setHasActivePlans(getActivePlans().length > 0);
+  }, []);
+
   return (
     <div className="min-h-screen pt-20 md:pt-24 pb-24 md:pb-8">
       <div className="container mx-auto px-4 max-w-6xl">
-        {/* Hero Section */}
         <div className="text-center mb-12 animate-fade-in-up">
           <h1 className="text-5xl md:text-7xl font-display font-bold gradient-text mb-4 animate-float">
             DAILY LIGHT's BIBLE
@@ -16,23 +25,19 @@ const Index = () => {
           </p>
         </div>
 
-        {/* Verse of the Day */}
-        <div className="mb-12">
-          <VerseOfTheDay />
+        <div className="mb-12"><VerseOfTheDay /></div>
+
+        <div className="grid md:grid-cols-2 gap-6 mb-12">
+          <ReadingProgressCard />
+          {hasActivePlans && <TodaysReadingCard />}
         </div>
 
-        {/* Quick Actions */}
         <div className="mb-12">
-          <h2 className="text-2xl font-display font-bold mb-6 text-center">
-            Continue Your Journey
-          </h2>
+          <h2 className="text-2xl font-display font-bold mb-6 text-center">Continue Your Journey</h2>
           <QuickActions />
         </div>
 
-        {/* Offline Download */}
-        <div className="mb-12">
-          <OfflineDownload />
-        </div>
+        <div className="mb-12"><OfflineDownload /></div>
       </div>
     </div>
   );
