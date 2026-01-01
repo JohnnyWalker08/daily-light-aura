@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -11,7 +11,8 @@ import {
   Circle, 
   BookOpen,
   Calendar,
-  ArrowLeft
+  ArrowLeft,
+  Play
 } from "lucide-react";
 import { 
   READING_PLANS, 
@@ -24,9 +25,11 @@ import { toast } from "sonner";
 
 export default function PlanDetail() {
   const { planId } = useParams<{ planId: string }>();
+  const navigate = useNavigate();
   const [plan, setPlan] = useState<ReadingPlan | null>(null);
   const [progress, setProgress] = useState<UserPlanProgress | null>(null);
   const [selectedDay, setSelectedDay] = useState(1);
+  const currentDayRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const foundPlan = READING_PLANS.find(p => p.id === planId);
@@ -41,6 +44,13 @@ export default function PlanDetail() {
     }
   }, [planId]);
 
+  // Scroll to current day on mount
+  useEffect(() => {
+    if (currentDayRef.current) {
+      currentDayRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [progress?.currentDay]);
+
   const handleMarkComplete = () => {
     if (!plan || !progress) return;
     
@@ -51,6 +61,16 @@ export default function PlanDetail() {
     // Auto-advance to next day
     if (selectedDay < plan.totalDays) {
       setSelectedDay(selectedDay + 1);
+    }
+  };
+
+  const handleStartReading = (passage: string) => {
+    // Parse passage like "Genesis 1" or "John 3"
+    const match = passage.match(/^(.+?)\s+(\d+)$/);
+    if (match) {
+      const book = match[1];
+      const chapter = match[2];
+      navigate(`/bible?book=${encodeURIComponent(book)}&chapter=${chapter}&plan=${planId}&day=${selectedDay}`);
     }
   };
 
@@ -75,6 +95,20 @@ export default function PlanDetail() {
     ? Math.round((progress.completedDays.length / plan.totalDays) * 100)
     : 0;
   const isDayCompleted = progress?.completedDays.includes(selectedDay);
+
+  // Sort days: current day first, then incomplete days, then completed days
+  const sortedReadings = [...plan.readings].sort((a, b) => {
+    const aIsCurrent = a.day === progress?.currentDay;
+    const bIsCurrent = b.day === progress?.currentDay;
+    const aIsCompleted = progress?.completedDays.includes(a.day);
+    const bIsCompleted = progress?.completedDays.includes(b.day);
+
+    if (aIsCurrent) return -1;
+    if (bIsCurrent) return 1;
+    if (!aIsCompleted && bIsCompleted) return -1;
+    if (aIsCompleted && !bIsCompleted) return 1;
+    return a.day - b.day;
+  });
 
   return (
     <div className="min-h-screen pt-20 md:pt-24 pb-24 md:pb-8">
@@ -110,12 +144,17 @@ export default function PlanDetail() {
         </Card>
 
         <div className="grid md:grid-cols-3 gap-6">
-          {/* Day Selector */}
+          {/* Day Selector - Sorted with current day on top */}
           <Card className="glass-card p-4 md:col-span-1 animate-fade-in-up">
-            <h3 className="font-display font-semibold text-foreground mb-4">Days</h3>
+            <h3 className="font-display font-semibold text-foreground mb-4 flex items-center justify-between">
+              <span>Days</span>
+              <span className="text-xs text-muted-foreground font-normal">
+                {progress?.completedDays.length || 0}/{plan.totalDays}
+              </span>
+            </h3>
             <ScrollArea className="h-[400px] pr-4">
               <div className="space-y-1">
-                {plan.readings.slice(0, Math.min(plan.totalDays, 100)).map((reading) => {
+                {sortedReadings.slice(0, Math.min(plan.totalDays, 100)).map((reading) => {
                   const isCompleted = progress?.completedDays.includes(reading.day);
                   const isSelected = reading.day === selectedDay;
                   const isCurrent = progress?.currentDay === reading.day;
@@ -123,22 +162,32 @@ export default function PlanDetail() {
                   return (
                     <button
                       key={reading.day}
+                      ref={isCurrent ? currentDayRef : undefined}
                       onClick={() => setSelectedDay(reading.day)}
-                      className={`w-full flex items-center gap-3 p-3 rounded-lg text-left transition-colors ${
+                      className={`w-full flex items-center gap-3 p-3 rounded-lg text-left transition-all ${
                         isSelected 
-                          ? 'bg-primary/10 border border-primary/30' 
+                          ? 'bg-primary/10 border border-primary/30 shadow-sm' 
+                          : isCurrent
+                          ? 'bg-accent/10 border border-accent/30'
                           : 'hover:bg-muted/50'
                       }`}
                     >
                       {isCompleted ? (
                         <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0" />
                       ) : (
-                        <Circle className={`h-5 w-5 flex-shrink-0 ${isCurrent ? 'text-primary' : 'text-muted-foreground'}`} />
+                        <Circle className={`h-5 w-5 flex-shrink-0 ${isCurrent ? 'text-accent' : 'text-muted-foreground'}`} />
                       )}
                       <div className="flex-1 min-w-0">
-                        <p className={`text-sm font-medium truncate ${isSelected ? 'text-foreground' : 'text-muted-foreground'}`}>
-                          Day {reading.day}
-                        </p>
+                        <div className="flex items-center gap-2">
+                          <p className={`text-sm font-medium ${isSelected || isCurrent ? 'text-foreground' : 'text-muted-foreground'}`}>
+                            Day {reading.day}
+                          </p>
+                          {isCurrent && !isCompleted && (
+                            <span className="text-[10px] uppercase tracking-wide font-semibold bg-accent/20 text-accent px-1.5 py-0.5 rounded">
+                              Today
+                            </span>
+                          )}
+                        </div>
                         <p className="text-xs text-muted-foreground truncate">
                           {reading.passages[0]}
                         </p>
@@ -190,16 +239,16 @@ export default function PlanDetail() {
               </div>
             </div>
 
-            {/* Passages List */}
+            {/* Passages List - Now clickable to navigate */}
             <div className="space-y-3 mb-6">
               <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
                 Today's Passages
               </h3>
               {currentReading?.passages.map((passage, index) => (
-                <Link
+                <button
                   key={index}
-                  to={`/bible?passage=${encodeURIComponent(passage)}`}
-                  className="flex items-center justify-between p-4 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors group"
+                  onClick={() => handleStartReading(passage)}
+                  className="w-full flex items-center justify-between p-4 rounded-xl bg-muted/30 hover:bg-muted/50 hover:scale-[1.01] transition-all group text-left"
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -207,8 +256,13 @@ export default function PlanDetail() {
                     </div>
                     <span className="text-foreground font-medium">{passage}</span>
                   </div>
-                  <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-foreground group-hover:translate-x-1 transition-all" />
-                </Link>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+                      Start reading
+                    </span>
+                    <Play className="h-4 w-4 text-primary opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                </button>
               ))}
             </div>
 
