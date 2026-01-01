@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Home, Book, Search, Bookmark, Heart, Moon, Sun } from "lucide-react";
+import { Home, Book, Search, FileText, Calendar, Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export const Navigation = () => {
@@ -16,9 +16,9 @@ export const Navigation = () => {
   const navItems = [
     { path: "/", icon: Home, label: "Home" },
     { path: "/bible", icon: Book, label: "Bible" },
+    { path: "/plans", icon: Calendar, label: "Plans" },
+    { path: "/notes", icon: FileText, label: "Notes" },
     { path: "/search", icon: Search, label: "Search" },
-    { path: "/bookmarks", icon: Bookmark, label: "Saved" },
-    { path: "/prayer", icon: Heart, label: "Prayer" },
   ];
 
   const isActive = (path: string) => location.pathname === path;

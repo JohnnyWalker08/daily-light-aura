@@ -11,6 +11,9 @@ import Search from "./pages/Search";
 import Bookmarks from "./pages/Bookmarks";
 import Prayer from "./pages/Prayer";
 import Plans from "./pages/Plans";
+import PlanDetail from "./pages/PlanDetail";
+import Notes from "./pages/Notes";
+import Progress from "./pages/Progress";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -29,7 +32,9 @@ const App = () => (
           <Route path="/bookmarks" element={<Bookmarks />} />
           <Route path="/prayer" element={<Prayer />} />
           <Route path="/plans" element={<Plans />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route path="/plans/:planId" element={<PlanDetail />} />
+          <Route path="/notes" element={<Notes />} />
+          <Route path="/progress" element={<Progress />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
