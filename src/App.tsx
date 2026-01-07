@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Analytics } from "@vercel/analytics/react";
 import { Navigation } from "@/components/Navigation";
+import { InstallPrompt } from "@/components/InstallPrompt";
 import Index from "./pages/Index";
 import Bible from "./pages/Bible";
 import Search from "./pages/Search";
@@ -14,6 +15,7 @@ import Plans from "./pages/Plans";
 import PlanDetail from "./pages/PlanDetail";
 import Notes from "./pages/Notes";
 import Progress from "./pages/Progress";
+import More from "./pages/More";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -25,6 +27,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Navigation />
+        <InstallPrompt />
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/bible" element={<Bible />} />
@@ -35,6 +38,7 @@ const App = () => (
           <Route path="/plans/:planId" element={<PlanDetail />} />
           <Route path="/notes" element={<Notes />} />
           <Route path="/progress" element={<Progress />} />
+          <Route path="/more" element={<More />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

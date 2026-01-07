@@ -1,16 +1,44 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Home, Book, Search, FileText, Calendar, Moon, Sun } from "lucide-react";
+import { Home, Book, Calendar, FileText, MoreHorizontal, Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export const Navigation = () => {
   const location = useLocation();
-  const [theme, setTheme] = useState<"light" | "dark">("light");
+  const [theme, setTheme] = useState<"light" | "dark">(() => {
+    // Check if already set in localStorage, otherwise default to dark
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('theme');
+      if (stored === 'light' || stored === 'dark') {
+        return stored;
+      }
+    }
+    return "dark"; // Default to dark mode
+  });
+
+  // Initialize theme on mount
+  useEffect(() => {
+    const storedTheme = localStorage.getItem('theme');
+    if (!storedTheme) {
+      // First visit - set dark mode
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else if (storedTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, []);
 
   const toggleTheme = () => {
     const newTheme = theme === "light" ? "dark" : "light";
     setTheme(newTheme);
-    document.documentElement.classList.toggle("dark");
+    localStorage.setItem('theme', newTheme);
+    if (newTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
   };
 
   const navItems = [
@@ -18,7 +46,7 @@ export const Navigation = () => {
     { path: "/bible", icon: Book, label: "Bible" },
     { path: "/plans", icon: Calendar, label: "Plans" },
     { path: "/notes", icon: FileText, label: "Notes" },
-    { path: "/search", icon: Search, label: "Search" },
+    { path: "/more", icon: MoreHorizontal, label: "More" },
   ];
 
   const isActive = (path: string) => location.pathname === path;
