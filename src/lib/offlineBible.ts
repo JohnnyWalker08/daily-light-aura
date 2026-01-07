@@ -86,27 +86,43 @@ export async function downloadAllBible(onProgress?: (current: number, total: num
   // Calculate total chapters
   Object.values(BOOK_CHAPTERS).forEach(count => totalChapters += count);
 
+  // Create a queue of all chapters to download
+  const queue: { book: string; chapter: number }[] = [];
   for (const book of books) {
     const chapters = BOOK_CHAPTERS[book];
-    
     for (let chapter = 1; chapter <= chapters; chapter++) {
-      try {
-        const response = await fetch(
-          `https://bible-api.com/${book}+${chapter}?translation=kjv`
-        );
-        const data = await response.json();
-        await saveChapter(book, chapter, data);
-        
-        downloaded++;
-        if (onProgress) {
-          onProgress(downloaded, totalChapters);
+      queue.push({ book, chapter });
+    }
+  }
+
+  // Process in parallel batches for faster downloads
+  const BATCH_SIZE = 10; // Download 10 chapters at a time
+  
+  for (let i = 0; i < queue.length; i += BATCH_SIZE) {
+    const batch = queue.slice(i, i + BATCH_SIZE);
+    
+    await Promise.all(
+      batch.map(async ({ book, chapter }) => {
+        try {
+          const response = await fetch(
+            `https://bible-api.com/${encodeURIComponent(book)}+${chapter}?translation=kjv`
+          );
+          const data = await response.json();
+          await saveChapter(book, chapter, data);
+          
+          downloaded++;
+          if (onProgress) {
+            onProgress(downloaded, totalChapters);
+          }
+        } catch (error) {
+          console.error(`Failed to download ${book} ${chapter}:`, error);
         }
-        
-        // Small delay to avoid overwhelming the API
-        await new Promise(resolve => setTimeout(resolve, 100));
-      } catch (error) {
-        console.error(`Failed to download ${book} ${chapter}:`, error);
-      }
+      })
+    );
+    
+    // Small delay between batches to be respectful to the API
+    if (i + BATCH_SIZE < queue.length) {
+      await new Promise(resolve => setTimeout(resolve, 50));
     }
   }
 }

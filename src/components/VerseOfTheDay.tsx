@@ -10,26 +10,48 @@ interface Verse {
   text: string;
 }
 
-// Morning verses (5 AM - 12 PM)
+// Large collection of morning verses (5 AM - 12 PM)
 const MORNING_VERSES = [
   "Psalm 5:3", "Psalm 90:14", "Lamentations 3:22-23", "Psalm 143:8", 
-  "Psalm 118:24", "Proverbs 3:5-6", "Isaiah 40:31", "Psalm 46:5"
+  "Psalm 118:24", "Proverbs 3:5-6", "Isaiah 40:31", "Psalm 46:5",
+  "Psalm 19:14", "Psalm 63:1", "Psalm 59:16", "Psalm 88:13",
+  "Psalm 92:1-2", "Psalm 130:6", "Psalm 55:17", "Mark 1:35",
+  "Proverbs 8:17", "Isaiah 26:9", "Genesis 19:27", "Exodus 34:2",
+  "Job 38:12", "Psalm 57:8", "Psalm 108:2", "Song of Solomon 2:12",
+  "Isaiah 50:4", "Hosea 6:3", "Micah 2:1", "Zephaniah 3:5",
+  "Matthew 6:33", "Romans 13:12", "Ephesians 5:14", "2 Peter 1:19",
+  "Psalm 30:5", "Psalm 49:14", "Psalm 65:8", "Psalm 139:18",
+  "Proverbs 4:18", "Isaiah 33:2", "Jeremiah 21:12", "Ezekiel 12:8"
 ];
 
-// Evening verses (12 PM - 11 PM)
+// Large collection of evening verses (12 PM - 11 PM) 
 const EVENING_VERSES = [
   "Psalm 4:8", "Matthew 11:28", "Philippians 4:6-7", "Psalm 91:1-2",
-  "John 14:27", "Psalm 23:1-3", "1 Peter 5:7", "Psalm 121:3-4"
+  "John 14:27", "Psalm 23:1-3", "1 Peter 5:7", "Psalm 121:3-4",
+  "Psalm 3:5", "Psalm 16:7", "Psalm 42:8", "Psalm 63:6",
+  "Psalm 77:6", "Psalm 119:55", "Psalm 127:2", "Psalm 134:1",
+  "Proverbs 3:24", "Ecclesiastes 5:12", "Isaiah 26:3", "Isaiah 57:2",
+  "Jeremiah 31:26", "Lamentations 2:19", "Daniel 2:19", "Luke 6:12",
+  "Acts 16:25", "Romans 8:28", "2 Corinthians 4:16", "Hebrews 4:9",
+  "Psalm 17:3", "Psalm 19:1", "Psalm 36:5", "Psalm 104:20",
+  "Psalm 139:11-12", "Psalm 141:2", "Job 35:10", "Song of Solomon 3:1",
+  "Zechariah 14:7", "Matthew 14:23", "Mark 6:46", "John 3:2"
 ];
 
 const getVerseForTimeOfDay = () => {
-  const hour = new Date().getHours();
+  const now = new Date();
+  const hour = now.getHours();
   const isMorning = hour >= 5 && hour < 12;
   const verseList = isMorning ? MORNING_VERSES : EVENING_VERSES;
   
-  // Use day of year to select verse so it changes daily
-  const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
-  const index = dayOfYear % verseList.length;
+  // Use day of year + current year to select verse so it changes daily and year-to-year
+  const startOfYear = new Date(now.getFullYear(), 0, 0);
+  const diff = now.getTime() - startOfYear.getTime();
+  const dayOfYear = Math.floor(diff / (1000 * 60 * 60 * 24));
+  
+  // Add year to index calculation so verses rotate each year too
+  const yearOffset = now.getFullYear() % 10;
+  const index = (dayOfYear + yearOffset) % verseList.length;
   
   return verseList[index];
 };

@@ -74,7 +74,7 @@ export function OfflineDownload() {
             <div className="space-y-2 mb-4">
               <Progress value={(progress / total) * 100} className="h-2" />
               <p className="text-sm text-muted-foreground">
-                Downloading: {progress} of {total} chapters
+                Downloading: {total > 0 ? Math.round((progress / total) * 100) : 0}% complete
               </p>
             </div>
           )}
