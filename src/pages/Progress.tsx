@@ -2,7 +2,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { BookProgressList } from "@/components/ReadingProgress";
 import { getTotalProgress, getLastRead } from "@/lib/progressStorage";
-import { BookOpen, Target, Award, Calendar, TrendingUp, ChevronRight } from "lucide-react";
+import { getStreakStats } from "@/lib/streaks";
+import { BookOpen, Target, Award, Calendar, TrendingUp, ChevronRight, Flame } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 
@@ -39,7 +40,7 @@ export default function ProgressPage() {
         </div>
 
         {/* Stats Overview */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
           <Card className="glass-card p-5 animate-fade-in-up" style={{ animationDelay: '0ms' }}>
             <div className="flex items-center gap-3 mb-3">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center">
@@ -78,6 +79,16 @@ export default function ProgressPage() {
             </div>
             <p className="text-3xl font-bold text-foreground">{stats.booksCompleted}</p>
             <p className="text-sm text-muted-foreground">Books Completed</p>
+          </Card>
+
+          <Card className="glass-card p-5 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/30 to-primary-glow/30 flex items-center justify-center">
+                <Flame className="h-5 w-5 text-primary" />
+              </div>
+            </div>
+            <p className="text-3xl font-bold text-foreground">{getStreakStats().current}</p>
+            <p className="text-sm text-muted-foreground">Day Streak</p>
           </Card>
         </div>
 

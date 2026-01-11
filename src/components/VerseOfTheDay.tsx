@@ -63,9 +63,18 @@ export const VerseOfTheDay = () => {
 
   useEffect(() => {
     const selectedVerse = getVerseForTimeOfDay();
-    
-    // Fetch the selected verse (KJV)
-    fetch(`https://bible-api.com/${selectedVerse}?translation=kjv`)
+
+    const raw = localStorage.getItem("dailylight_settings");
+    let translation: string = "kjv";
+    try {
+      const parsed = raw ? JSON.parse(raw) : null;
+      translation = parsed?.translation || "kjv";
+    } catch {
+      translation = "kjv";
+    }
+
+    // Fetch the selected verse
+    fetch(`https://bible-api.com/${selectedVerse}?translation=${translation}`)
       .then((res) => res.json())
       .then((data) => {
         setVerse({
@@ -73,7 +82,7 @@ export const VerseOfTheDay = () => {
           text: data.text.trim(),
         });
         setLoading(false);
-        
+
         // Check if bookmarked
         const bookmarks = JSON.parse(localStorage.getItem("bookmarks") || "[]");
         setIsBookmarked(bookmarks.some((b: Verse) => b.reference === data.reference));

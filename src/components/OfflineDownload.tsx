@@ -24,17 +24,21 @@ export function OfflineDownload() {
   const handleDownload = async () => {
     setIsDownloading(true);
     setProgress(0);
-    
+
     try {
       await downloadAllBible((current, total) => {
         setProgress(current);
         setTotal(total);
       });
-      
+
       toast.success("Complete Bible downloaded for offline access!");
       setIsAvailable(true);
     } catch (error) {
-      toast.error("Failed to download Bible. Please try again.");
+      toast.error(
+        "Download paused (network/API limits). Tap Download All again to resume from where it stopped."
+      );
+      // We may still have partial data available.
+      checkAvailability();
     } finally {
       setIsDownloading(false);
     }
