@@ -5,8 +5,10 @@ import { BookOpen, FileText, Calendar, Trash2, Edit3, ChevronDown } from "lucide
 import { Note, getAllNotes, deleteNote } from "@/lib/notesStorage";
 import { NoteEditor } from "@/components/NoteEditor";
 import { toast } from "sonner";
+import { getUserSettings, onSettingsChange } from "@/lib/settingsStorage";
 
 export default function Notes() {
+  const [settings, setSettings] = useState(() => getUserSettings());
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
@@ -25,6 +27,7 @@ export default function Notes() {
 
   useEffect(() => {
     loadNotes();
+    return onSettingsChange(() => setSettings(getUserSettings()));
   }, []);
 
   const handleDelete = async (id: string) => {
@@ -156,7 +159,13 @@ export default function Notes() {
                             </Button>
                           </div>
                         </div>
-                        <p className="text-foreground text-sm leading-relaxed whitespace-pre-wrap">
+                        <p
+                          className="text-foreground leading-relaxed whitespace-pre-wrap"
+                          style={{
+                            fontSize: settings.fontSize === "large" ? 19 : settings.fontSize === "xlarge" ? 21 : 16,
+                            fontFamily: settings.fontFamily === "serif" ? "Georgia, ui-serif, serif" : undefined,
+                          }}
+                        >
                           {note.content}
                         </p>
                       </div>
