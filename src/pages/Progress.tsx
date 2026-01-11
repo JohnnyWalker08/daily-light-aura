@@ -2,14 +2,15 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { BookProgressList } from "@/components/ReadingProgress";
 import { getTotalProgress, getLastRead } from "@/lib/progressStorage";
-import { getStreakStats } from "@/lib/streaks";
-import { BookOpen, Target, Award, Calendar, TrendingUp, ChevronRight, Flame } from "lucide-react";
+import { getStreakStats, StreakBadge } from "@/lib/streaks";
+import { BookOpen, Target, Award, Calendar, TrendingUp, ChevronRight, Flame, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 
 export default function ProgressPage() {
   const [stats, setStats] = useState(getTotalProgress());
   const [lastRead, setLastRead] = useState(getLastRead());
+  const streakStats = useMemo(() => getStreakStats(), []);
 
   useEffect(() => {
     setStats(getTotalProgress());
@@ -91,6 +92,39 @@ export default function ProgressPage() {
             <p className="text-sm text-muted-foreground">Day Streak</p>
           </Card>
         </div>
+
+        {/* Streak Card with Badge */}
+        {(streakStats.current > 0 || streakStats.badge) && (
+          <Card className="glass-card p-6 mb-8 animate-fade-in-up overflow-hidden relative">
+            <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-orange-500/5 pointer-events-none" />
+            <div className="flex flex-col md:flex-row md:items-center gap-6 relative">
+              <div className="flex items-center gap-4 flex-1">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shadow-lg">
+                  <Flame className="h-8 w-8 text-white" />
+                </div>
+                <div>
+                  <p className="text-4xl font-bold text-foreground">{streakStats.current} day{streakStats.current !== 1 ? "s" : ""}</p>
+                  <p className="text-muted-foreground">Current streak</p>
+                </div>
+              </div>
+
+              {streakStats.badge && (
+                <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-primary/10 to-primary-glow/10 border border-primary/20">
+                  <Sparkles className="h-5 w-5 text-primary" />
+                  <div>
+                    <p className="font-semibold text-foreground">{streakStats.badge.name}</p>
+                    <p className="text-sm text-muted-foreground">{streakStats.badge.description}</p>
+                  </div>
+                </div>
+              )}
+
+              <div className="text-right">
+                <p className="text-lg font-semibold text-foreground">{streakStats.best} days</p>
+                <p className="text-sm text-muted-foreground">Best streak</p>
+              </div>
+            </div>
+          </Card>
+        )}
 
         {/* Last Read & Continue */}
         {lastRead && (

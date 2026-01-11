@@ -116,23 +116,37 @@ export async function downloadAllBible(
       req.onerror = () => reject(req.error);
     });
 
-  const fetchWithRetry = async (url: string, retries = 3) => {
+  const fetchWithRetry = async (url: string, retries = 4): Promise<Response> => {
     for (let attempt = 0; attempt <= retries; attempt++) {
-      const res = await fetch(url);
-      if (res.ok) return res;
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+        const res = await fetch(url, { signal: controller.signal });
+        clearTimeout(timeoutId);
 
-      // Backoff a bit on rate-limits / transient errors
-      if (attempt < retries && (res.status === 429 || res.status >= 500)) {
-        const wait = 250 * Math.pow(2, attempt);
-        await new Promise((r) => setTimeout(r, wait));
-        continue;
+        if (res.ok) return res;
+
+        // Backoff on rate-limits / transient errors
+        if (attempt < retries && (res.status === 429 || res.status >= 500)) {
+          const wait = 500 * Math.pow(2, attempt);
+          await new Promise((r) => setTimeout(r, wait));
+          continue;
+        }
+
+        throw new Error(`HTTP ${res.status}`);
+      } catch (err: any) {
+        if (attempt < retries && (err.name === "AbortError" || err.message?.includes("fetch"))) {
+          const wait = 500 * Math.pow(2, attempt);
+          await new Promise((r) => setTimeout(r, wait));
+          continue;
+        }
+        throw err;
       }
-
-      throw new Error(`HTTP ${res.status}`);
     }
+    throw new Error("Max retries reached");
   };
 
-  const CONCURRENCY = 4;
+  const CONCURRENCY = 6; // Slightly higher concurrency for speed
   let completed = 0;
   const failures: { book: string; chapter: number; error: unknown }[] = [];
 
@@ -145,7 +159,7 @@ export async function downloadAllBible(
       const key = `${book}_${chapter}`;
 
       try {
-        // Skip if already cached (resume support)
+        // Skip if already cached (resume support) - faster check
         const existing = await getFromDb(key);
         if (!existing) {
           const url = `https://bible-api.com/${encodeURIComponent(book)}+${chapter}?translation=kjv`;
