@@ -22,23 +22,30 @@ export const InstallPrompt = () => {
     }
 
     // Check if already installed
-    if (window.matchMedia('(display-mode: standalone)').matches) {
-      return;
-    }
+    const isStandalone =
+      window.matchMedia('(display-mode: standalone)').matches ||
+      (window.navigator && (window.navigator as any).standalone);
+
+    if (isStandalone) return;
 
     const handler = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
-      
-      // Show prompt after 8 seconds
-      setTimeout(() => {
-        if (!sessionStorage.getItem('pwa-prompt-dismissed')) {
-          setShowPrompt(true);
-        }
-      }, 8000);
+      // Show immediately as a top banner once the browser allows prompting
+      if (!sessionStorage.getItem('pwa-prompt-dismissed')) {
+        setShowPrompt(true);
+      }
     };
 
     window.addEventListener('beforeinstallprompt', handler);
+
+    // iOS: no beforeinstallprompt event; show a lightweight banner with instructions
+    const ua = window.navigator.userAgent.toLowerCase();
+    const isIOS = /iphone|ipad|ipod/.test(ua);
+    const isSafari = isIOS && /safari/.test(ua) && !/crios|fxios/.test(ua);
+    if (isSafari && !sessionStorage.getItem('pwa-prompt-dismissed')) {
+      setShowPrompt(true);
+    }
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handler);
@@ -64,37 +71,41 @@ export const InstallPrompt = () => {
     sessionStorage.setItem('pwa-prompt-dismissed', 'true');
   };
 
-  if (!showPrompt || dismissed || !deferredPrompt) return null;
+  if (!showPrompt || dismissed) return null;
+
+  const ua = window.navigator.userAgent.toLowerCase();
+  const isIOS = /iphone|ipad|ipod/.test(ua);
+  const isSafari = isIOS && /safari/.test(ua) && !/crios|fxios/.test(ua);
+  const canTriggerPrompt = !!deferredPrompt;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-end justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
-      <Card className="glass-card w-full max-w-md p-6 animate-fade-in-up">
-        <div className="flex items-start gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center flex-shrink-0">
-            <Download className="h-7 w-7 text-primary-foreground" />
+    <div className="fixed top-0 left-0 right-0 z-[100] px-3 pt-3">
+      <Card className="glass-card mx-auto max-w-3xl p-3">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center flex-shrink-0">
+            <Download className="h-5 w-5 text-primary-foreground" />
           </div>
-          
-          <div className="flex-1">
-            <h3 className="text-lg font-display font-bold mb-1">Install DailyLight</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              Add to your home screen for quick access, offline reading, and a better experience.
+
+          <div className="flex-1 min-w-0">
+            <p className="font-display font-semibold leading-tight">Install DailyLight</p>
+            <p className="text-sm text-muted-foreground leading-tight">
+              {isSafari && !canTriggerPrompt
+                ? "On iPhone: tap Share → Add to Home Screen."
+                : "Add to your home screen for offline reading and quick access."}
             </p>
-            
-            <div className="flex gap-2">
-              <Button 
-                onClick={handleInstall}
-                className="flex-1 bg-gradient-to-r from-primary to-primary-glow"
-              >
-                Install App
-              </Button>
-              <Button 
-                variant="ghost" 
-                size="icon"
-                onClick={handleDismiss}
-              >
-                <X className="h-5 w-5" />
-              </Button>
-            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={handleInstall}
+              disabled={!canTriggerPrompt}
+              className="bg-gradient-to-r from-primary to-primary-glow"
+            >
+              Install
+            </Button>
+            <Button variant="ghost" size="icon" onClick={handleDismiss} aria-label="Dismiss install prompt">
+              <X className="h-5 w-5" />
+            </Button>
           </div>
         </div>
       </Card>

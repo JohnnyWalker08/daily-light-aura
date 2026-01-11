@@ -3,6 +3,7 @@ import { BOOK_CHAPTERS } from './offlineBible';
 
 export interface ReadingProgress {
   chaptersRead: { [key: string]: boolean }; // "Genesis_1": true
+  readDates: string[]; // YYYY-MM-DD strings for streak tracking
   lastReadDate: string | null;
   lastReadBook: string | null;
   lastReadChapter: number | null;
@@ -10,13 +11,25 @@ export interface ReadingProgress {
 
 const STORAGE_KEY = 'reading_progress';
 
+function toDayKey(date = new Date()) {
+  return date.toISOString().slice(0, 10);
+}
+
 export function getProgress(): ReadingProgress {
   const stored = localStorage.getItem(STORAGE_KEY);
   if (stored) {
-    return JSON.parse(stored);
+    const parsed = JSON.parse(stored) as ReadingProgress;
+    return {
+      chaptersRead: parsed.chaptersRead || {},
+      readDates: parsed.readDates || [],
+      lastReadDate: parsed.lastReadDate ?? null,
+      lastReadBook: parsed.lastReadBook ?? null,
+      lastReadChapter: parsed.lastReadChapter ?? null,
+    };
   }
   return {
     chaptersRead: {},
+    readDates: [],
     lastReadDate: null,
     lastReadBook: null,
     lastReadChapter: null,
@@ -31,6 +44,12 @@ export function markChapterAsRead(book: string, chapter: number): void {
   const progress = getProgress();
   const key = `${book}_${chapter}`;
   progress.chaptersRead[key] = true;
+
+  const today = toDayKey();
+  if (!progress.readDates.includes(today)) {
+    progress.readDates.push(today);
+  }
+
   progress.lastReadDate = new Date().toISOString();
   progress.lastReadBook = book;
   progress.lastReadChapter = chapter;

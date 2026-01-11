@@ -17,14 +17,15 @@ import { toast } from "sonner";
 import { getChapter, saveChapter } from "@/lib/offlineBible";
 import { markChapterAsRead, isChapterRead } from "@/lib/progressStorage";
 import { getNotesForChapter, Note } from "@/lib/notesStorage";
-import { 
-  getHighlightsForChapter, 
-  highlightVerse, 
-  removeHighlight, 
+import {
+  getHighlightsForChapter,
+  highlightVerse,
+  removeHighlight,
   HIGHLIGHT_COLORS,
   HighlightColor,
-  VerseHighlight
+  VerseHighlight,
 } from "@/lib/highlightStorage";
+import { getUserSettings, onSettingsChange } from "@/lib/settingsStorage";
 import { NoteEditor } from "@/components/NoteEditor";
 import { markDayComplete, getUserPlanProgress, READING_PLANS } from "@/lib/plansStorage";
 
@@ -81,6 +82,7 @@ export default function Bible() {
   const [noteEditor, setNoteEditor] = useState<{ verse?: number } | null>(null);
   const [selectedVerse, setSelectedVerse] = useState<number | null>(null);
   const [showHighlightPicker, setShowHighlightPicker] = useState(false);
+  const [translation, setTranslation] = useState(() => getUserSettings().translation);
 
   // Update book/chapter from URL params
   useEffect(() => {
@@ -93,7 +95,13 @@ export default function Bible() {
     loadNotes();
     loadHighlights();
     setChapterRead(isChapterRead(book, parseInt(chapter)));
-  }, [book, chapter]);
+  }, [book, chapter, translation]);
+
+  useEffect(() => {
+    return onSettingsChange(() => {
+      setTranslation(getUserSettings().translation);
+    });
+  }, []);
 
   const loadChapter = async () => {
     setLoading(true);
@@ -104,7 +112,9 @@ export default function Bible() {
         setLoading(false);
         return;
       }
-      const response = await fetch(`https://bible-api.com/${book}+${chapter}?translation=kjv`);
+      const response = await fetch(
+        `https://bible-api.com/${encodeURIComponent(book)}+${chapter}?translation=${translation}`
+      );
       const data = await response.json();
       setVerses(data);
       await saveChapter(book, parseInt(chapter), data);
@@ -325,7 +335,7 @@ export default function Bible() {
               </h2>
               
               {/* Improved verse layout - full width, flowing text */}
-              <div className="space-y-6">
+              <div className="space-y-6" style={{ fontFamily: "var(--reader-font-family)" }}>
                 {verses.verses?.map((verse: any) => {
                   const highlight = getHighlightForVerse(verse.verse);
                   const highlightBg = highlight 

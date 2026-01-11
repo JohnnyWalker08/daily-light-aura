@@ -78,13 +78,14 @@ export async function isOfflineDataAvailable(): Promise<boolean> {
   }
 }
 
-export async function downloadAllBible(onProgress?: (current: number, total: number) => void) {
+export async function downloadAllBible(
+  onProgress?: (current: number, total: number) => void
+) {
   const books = Object.keys(BOOK_CHAPTERS);
   let totalChapters = 0;
-  let downloaded = 0;
 
   // Calculate total chapters
-  Object.values(BOOK_CHAPTERS).forEach(count => totalChapters += count);
+  Object.values(BOOK_CHAPTERS).forEach((count) => (totalChapters += count));
 
   // Create a queue of all chapters to download
   const queue: { book: string; chapter: number }[] = [];
@@ -95,35 +96,78 @@ export async function downloadAllBible(onProgress?: (current: number, total: num
     }
   }
 
-  // Process in parallel batches for faster downloads
-  const BATCH_SIZE = 10; // Download 10 chapters at a time
-  
-  for (let i = 0; i < queue.length; i += BATCH_SIZE) {
-    const batch = queue.slice(i, i + BATCH_SIZE);
-    
-    await Promise.all(
-      batch.map(async ({ book, chapter }) => {
-        try {
-          const response = await fetch(
-            `https://bible-api.com/${encodeURIComponent(book)}+${chapter}?translation=kjv`
-          );
-          const data = await response.json();
-          await saveChapter(book, chapter, data);
-          
-          downloaded++;
-          if (onProgress) {
-            onProgress(downloaded, totalChapters);
-          }
-        } catch (error) {
-          console.error(`Failed to download ${book} ${chapter}:`, error);
-        }
-      })
-    );
-    
-    // Small delay between batches to be respectful to the API
-    if (i + BATCH_SIZE < queue.length) {
-      await new Promise(resolve => setTimeout(resolve, 50));
+  const db = await openDB();
+
+  const getFromDb = (key: string) =>
+    new Promise<any | null>((resolve) => {
+      const tx = db.transaction([STORE_NAME], "readonly");
+      const store = tx.objectStore(STORE_NAME);
+      const req = store.get(key);
+      req.onsuccess = () => resolve(req.result?.data || null);
+      req.onerror = () => resolve(null);
+    });
+
+  const saveToDb = (key: string, data: any) =>
+    new Promise<void>((resolve, reject) => {
+      const tx = db.transaction([STORE_NAME], "readwrite");
+      const store = tx.objectStore(STORE_NAME);
+      const req = store.put({ key, data });
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+
+  const fetchWithRetry = async (url: string, retries = 3) => {
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      const res = await fetch(url);
+      if (res.ok) return res;
+
+      // Backoff a bit on rate-limits / transient errors
+      if (attempt < retries && (res.status === 429 || res.status >= 500)) {
+        const wait = 250 * Math.pow(2, attempt);
+        await new Promise((r) => setTimeout(r, wait));
+        continue;
+      }
+
+      throw new Error(`HTTP ${res.status}`);
     }
+  };
+
+  const CONCURRENCY = 4;
+  let completed = 0;
+  const failures: { book: string; chapter: number; error: unknown }[] = [];
+
+  const worker = async () => {
+    while (queue.length) {
+      const item = queue.shift();
+      if (!item) return;
+
+      const { book, chapter } = item;
+      const key = `${book}_${chapter}`;
+
+      try {
+        // Skip if already cached (resume support)
+        const existing = await getFromDb(key);
+        if (!existing) {
+          const url = `https://bible-api.com/${encodeURIComponent(book)}+${chapter}?translation=kjv`;
+          const response = await fetchWithRetry(url, 3);
+          const data = await response.json();
+          await saveToDb(key, data);
+        }
+      } catch (error) {
+        failures.push({ book, chapter, error });
+      } finally {
+        completed++;
+        onProgress?.(completed, totalChapters);
+      }
+    }
+  };
+
+  await Promise.all(Array.from({ length: CONCURRENCY }, () => worker()));
+
+  // If we had failures, throw so the UI can show “resume” instead of “success”.
+  if (failures.length > 0) {
+    console.warn(`Offline download finished with ${failures.length} failures`, failures.slice(0, 5));
+    throw new Error(`Offline download incomplete: ${failures.length} chapters failed`);
   }
 }
 

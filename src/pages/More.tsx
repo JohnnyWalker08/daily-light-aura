@@ -40,7 +40,7 @@ const More = () => {
   };
 
   const handleGetHelp = () => {
-    window.location.href = "mailto:ajayijohn@gmail.com?subject=DailyLight%20Bible%20-%20Help%20Request";
+    window.location.href = "mailto:JB.websites.agency@gmail.com?subject=DailyLight%20Bible%20-%20Help%20Request";
   };
 
   const menuItems = [
@@ -76,16 +76,28 @@ const More = () => {
             </div>
           </Card>
 
+          <Link to="/settings">
+            <Card className="glass-card p-4 flex items-center gap-4 cursor-pointer hover:bg-secondary/50 transition-colors active:scale-[0.98]">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center">
+                <Settings className="h-6 w-6 text-primary-foreground" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold">Settings</h3>
+                <p className="text-sm text-muted-foreground">Font size, font & Bible version</p>
+              </div>
+            </Card>
+          </Link>
+
           <Card 
             className="glass-card p-4 flex items-center gap-4 cursor-pointer hover:bg-secondary/50 transition-colors active:scale-[0.98]"
             onClick={handleGetHelp}
           >
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
-              <HelpCircle className="h-6 w-6 text-white" />
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center">
+              <HelpCircle className="h-6 w-6 text-primary-foreground" />
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold">Get Help</h3>
-              <p className="text-sm text-muted-foreground">Contact support via email</p>
+              <h3 className="font-semibold">Get Help / Get in Touch</h3>
+              <p className="text-sm text-muted-foreground">JB.websites.agency@gmail.com</p>
             </div>
           </Card>
         </div>
@@ -127,7 +139,7 @@ const More = () => {
               </div>
               <div>
                 <h2 className="text-xl font-display font-bold">About DailyLight</h2>
-                <p className="text-sm text-muted-foreground">Version 1.0</p>
+                <p className="text-sm text-muted-foreground">Version 1.5</p>
               </div>
             </div>
             
