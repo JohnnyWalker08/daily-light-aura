@@ -11,8 +11,10 @@ import {
   CheckCircle2,
   Highlighter,
   X,
-  ArrowLeft
+  ArrowLeft,
+  Settings2
 } from "lucide-react";
+import { ReaderSettingsPanel } from "@/components/ReaderSettingsPanel";
 import { toast } from "sonner";
 import { getChapter, saveChapter } from "@/lib/offlineBible";
 import { markChapterAsRead, isChapterRead } from "@/lib/progressStorage";
@@ -83,6 +85,7 @@ export default function Bible() {
   const [selectedVerse, setSelectedVerse] = useState<number | null>(null);
   const [showHighlightPicker, setShowHighlightPicker] = useState(false);
   const [translation, setTranslation] = useState(() => getUserSettings().translation);
+  const [showSettingsPanel, setShowSettingsPanel] = useState(false);
 
   // Update book/chapter from URL params
   useEffect(() => {
@@ -320,6 +323,17 @@ export default function Bible() {
           </div>
         </Card>
 
+        {/* Settings Toggle Button - floating in corner */}
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => setShowSettingsPanel(true)}
+          className="fixed top-24 right-4 z-30 h-10 w-10 rounded-full shadow-lg bg-background/80 backdrop-blur-sm"
+          title="Reading settings"
+        >
+          <Settings2 className="h-5 w-5" />
+        </Button>
+
         {/* Verse Content - Improved Readability */}
         <Card className="glass-card p-6 sm:p-8">
           {loading ? (
@@ -335,7 +349,14 @@ export default function Bible() {
               </h2>
               
               {/* Improved verse layout - full width, flowing text */}
-              <div className="space-y-6" style={{ fontFamily: "var(--reader-font-family)" }}>
+              <div 
+                className="space-y-6" 
+                style={{ 
+                  fontFamily: "var(--reader-font-family)",
+                  fontSize: "var(--reader-font-size)",
+                  lineHeight: "var(--reader-line-height, 1.75)"
+                }}
+              >
                 {verses.verses?.map((verse: any) => {
                   const highlight = getHighlightForVerse(verse.verse);
                   const highlightBg = highlight 
@@ -351,10 +372,10 @@ export default function Bible() {
                         className="cursor-pointer py-1"
                         onClick={() => handleVerseClick(verse.verse)}
                       >
-                        <span className="text-primary font-bold text-base mr-2 align-super">
+                        <span className="text-primary font-bold mr-2 align-super" style={{ fontSize: "0.85em" }}>
                           {verse.verse}
                         </span>
-                        <span className="text-foreground text-lg leading-relaxed">
+                        <span className="text-foreground leading-relaxed">
                           {verse.text}
                         </span>
                       </div>
@@ -402,53 +423,60 @@ export default function Bible() {
           )}
         </Card>
 
-        {/* Bottom Navigation */}
-        <div className="fixed bottom-20 md:bottom-4 left-0 right-0 px-4 z-40">
-          <div className="container max-w-4xl mx-auto">
-            <Card className="glass-card p-3 flex items-center justify-between">
+        {/* Bottom Navigation - Prev only on chapter > 1, Next only on last chapter */}
+        <div className="mt-8 mb-4">
+          <Card className="glass-card p-3 flex items-center justify-between">
+            {/* Previous - only show if not first chapter */}
+            {parseInt(chapter) > 1 ? (
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => navigateChapter('prev')}
-                disabled={parseInt(chapter) <= 1}
               >
                 <ChevronLeft className="h-4 w-4 mr-1" />
                 Previous
               </Button>
-              
-              {nextPassage ? (
-                <Button
-                  size="sm"
-                  onClick={handleNextPassage}
-                  className="bg-gradient-to-r from-primary to-primary-glow"
-                >
-                  Next: {nextPassage}
-                  <ChevronRight className="h-4 w-4 ml-1" />
-                </Button>
-              ) : (
-                <Button
-                  variant={chapterRead ? "secondary" : "default"}
-                  size="sm"
-                  onClick={handleMarkRead}
-                  disabled={chapterRead}
-                  className={!chapterRead ? "bg-gradient-to-r from-primary to-primary-glow" : ""}
-                >
-                  <CheckCircle2 className="h-4 w-4 mr-1" />
-                  {chapterRead ? "Completed" : "Mark as Read"}
-                </Button>
-              )}
-              
+            ) : (
+              <div className="w-20" /> 
+            )}
+            
+            {/* Center: Mark as Read or Next Passage */}
+            {nextPassage ? (
+              <Button
+                size="sm"
+                onClick={handleNextPassage}
+                className="bg-gradient-to-r from-primary to-primary-glow"
+              >
+                Next: {nextPassage}
+                <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+            ) : (
+              <Button
+                variant={chapterRead ? "secondary" : "default"}
+                size="sm"
+                onClick={handleMarkRead}
+                disabled={chapterRead}
+                className={!chapterRead ? "bg-gradient-to-r from-primary to-primary-glow" : ""}
+              >
+                <CheckCircle2 className="h-4 w-4 mr-1" />
+                {chapterRead ? "Completed" : "Mark as Read"}
+              </Button>
+            )}
+            
+            {/* Next - only show if not last chapter */}
+            {parseInt(chapter) < maxChapters ? (
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => navigateChapter('next')}
-                disabled={parseInt(chapter) >= maxChapters}
               >
                 Next
                 <ChevronRight className="h-4 w-4 ml-1" />
               </Button>
-            </Card>
-          </div>
+            ) : (
+              <div className="w-16" />
+            )}
+          </Card>
         </div>
 
         {/* Highlight Color Picker */}
@@ -501,6 +529,12 @@ export default function Bible() {
             onSave={loadNotes} 
           />
         )}
+
+        {/* Reader Settings Panel */}
+        <ReaderSettingsPanel 
+          isOpen={showSettingsPanel} 
+          onClose={() => setShowSettingsPanel(false)} 
+        />
       </div>
     </div>
   );
