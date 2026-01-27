@@ -69,6 +69,7 @@ All colors MUST be HSL.
     /* Reader preferences */
     --reader-font-size: 17px;
     --reader-font-family: inherit;
+    --reader-line-height: 1.75;
   }
 
   .dark {

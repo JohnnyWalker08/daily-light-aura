@@ -4,6 +4,7 @@ import { OfflineDownload } from "@/components/OfflineDownload";
 import { ReadingProgressCard } from "@/components/ReadingProgress";
 import { TodaysReadingCard } from "@/components/ReadingPlans";
 import { DailyDevotional } from "@/components/DailyDevotional";
+import { DidYouKnow } from "@/components/DidYouKnow";
 import { getActivePlans } from "@/lib/plansStorage";
 import { useState, useEffect } from "react";
 
@@ -16,6 +17,9 @@ const Index = () => {
 
   return (
     <div className="min-h-screen pt-20 md:pt-24 pb-24 md:pb-8">
+      {/* Did You Know Popup - shows once per session on app open */}
+      <DidYouKnow />
+
       <div className="container mx-auto px-4 max-w-6xl">
         <div className="text-center mb-12 animate-fade-in-up">
           <h1 className="text-5xl md:text-7xl font-display font-bold gradient-text mb-4 animate-float">
