@@ -10,14 +10,18 @@ import {
   TrendingUp,
   FileText,
   Search,
-  Heart
+  Heart,
+  LogIn,
+  LogOut
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
 const More = () => {
+  const { user, signOut } = useAuth();
   const handleShare = async () => {
     const shareData = {
       title: "DailyLight Bible",
@@ -100,6 +104,37 @@ const More = () => {
               <p className="text-sm text-muted-foreground">JB.websites.agency@gmail.com</p>
             </div>
           </Card>
+        </div>
+
+        {/* Account Section */}
+        <div className="mb-8">
+          {user ? (
+            <Card className="glass-card p-4 flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-emerald-400 flex items-center justify-center">
+                <User className="h-6 w-6 text-primary-foreground" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold">Signed In</h3>
+                <p className="text-sm text-muted-foreground truncate">{user.email}</p>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => { signOut(); toast.success("Signed out"); }}>
+                <LogOut className="h-4 w-4 mr-1" />
+                Sign Out
+              </Button>
+            </Card>
+          ) : (
+            <Link to="/auth">
+              <Card className="glass-card p-4 flex items-center gap-4 cursor-pointer hover:bg-secondary/50 transition-colors active:scale-[0.98]">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-emerald-400 flex items-center justify-center">
+                  <LogIn className="h-6 w-6 text-primary-foreground" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold">Sign In / Create Account</h3>
+                  <p className="text-sm text-muted-foreground">Sync reflections, prayers & progress</p>
+                </div>
+              </Card>
+            </Link>
+          )}
         </div>
 
         {/* Feature Links */}
