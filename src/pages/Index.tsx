@@ -4,7 +4,9 @@ import { OfflineDownload } from "@/components/OfflineDownload";
 import { ReadingProgressCard } from "@/components/ReadingProgress";
 import { TodaysReadingCard } from "@/components/ReadingPlans";
 import { DailyDevotional } from "@/components/DailyDevotional";
+import { DailyReflectionWidget } from "@/components/DailyReflectionWidget";
 import { DidYouKnow } from "@/components/DidYouKnow";
+import { OnboardingMenu } from "@/components/OnboardingMenu";
 import { getActivePlans } from "@/lib/plansStorage";
 import { useState, useEffect } from "react";
 
@@ -19,6 +21,8 @@ const Index = () => {
     <div className="min-h-screen pt-20 md:pt-24 pb-24 md:pb-8">
       {/* Did You Know Popup - shows once per session on app open */}
       <DidYouKnow />
+      {/* Onboarding Menu - shows occasionally on home page for non-signed-in users */}
+      <OnboardingMenu />
 
       <div className="container mx-auto px-4 max-w-6xl">
         <div className="text-center mb-12 animate-fade-in-up">
@@ -35,6 +39,11 @@ const Index = () => {
         {/* Daily Devotional Widget */}
         <div className="mb-12">
           <DailyDevotional />
+        </div>
+
+        {/* Daily Self-Examination & Reflection */}
+        <div className="mb-12">
+          <DailyReflectionWidget />
         </div>
 
         <div className="grid md:grid-cols-2 gap-6 mb-12">

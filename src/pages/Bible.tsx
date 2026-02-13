@@ -15,6 +15,7 @@ import {
   Settings2
 } from "lucide-react";
 import { ReaderSettingsPanel } from "@/components/ReaderSettingsPanel";
+import { ScriptureRecommendations } from "@/components/ScriptureRecommendations";
 import { toast } from "sonner";
 import { getChapter, saveChapter } from "@/lib/offlineBible";
 import { markChapterAsRead, isChapterRead } from "@/lib/progressStorage";
@@ -422,6 +423,11 @@ export default function Bible() {
             </p>
           )}
         </Card>
+
+        {/* Scripture Recommendations - shown after reading */}
+        {verses && chapterRead && (
+          <ScriptureRecommendations book={book} chapter={parseInt(chapter)} />
+        )}
 
         {/* Bottom Navigation - Prev only on chapter > 1, Next only on last chapter */}
         <div className="mt-8 mb-4">
