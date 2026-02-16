@@ -1,7 +1,7 @@
 export type BibleTranslation = "kjv" | "web" | "asv";
 
 export type ReaderFontSize = "default" | "large" | "xlarge";
-export type ReaderFontFamily = "default" | "serif";
+export type ReaderFontFamily = "default" | "serif" | "lora" | "merriweather" | "literata" | "source-serif" | "crimson";
 
 export interface UserSettings {
   translation: BibleTranslation;
@@ -44,10 +44,16 @@ export function applyReaderSettingsToDocument(settings: UserSettings) {
     settings.fontSize === "large" ? 19 : settings.fontSize === "xlarge" ? 21 : 17;
 
   root.style.setProperty("--reader-font-size", `${fontSizePx}px`);
-  root.style.setProperty(
-    "--reader-font-family",
-    settings.fontFamily === "serif" ? "Georgia, ui-serif, serif" : "inherit"
-  );
+  const fontMap: Record<ReaderFontFamily, string> = {
+    default: "inherit",
+    serif: "Georgia, ui-serif, serif",
+    lora: "'Lora', Georgia, serif",
+    merriweather: "'Merriweather', Georgia, serif",
+    literata: "'Literata', Georgia, serif",
+    "source-serif": "'Source Serif 4', Georgia, serif",
+    crimson: "'Crimson Text', Georgia, serif",
+  };
+  root.style.setProperty("--reader-font-family", fontMap[settings.fontFamily] || "inherit");
 }
 
 export function onSettingsChange(cb: () => void) {
