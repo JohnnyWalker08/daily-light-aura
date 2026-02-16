@@ -1,4 +1,6 @@
 // Offline Bible storage using IndexedDB
+import { supabase } from "@/integrations/supabase/client";
+
 const DB_NAME = 'BibleDB';
 const DB_VERSION = 1;
 const STORE_NAME = 'chapters';
@@ -83,18 +85,7 @@ export async function downloadAllBible(
 ) {
   const books = Object.keys(BOOK_CHAPTERS);
   let totalChapters = 0;
-
-  // Calculate total chapters
   Object.values(BOOK_CHAPTERS).forEach((count) => (totalChapters += count));
-
-  // Create a queue of all chapters to download
-  const queue: { book: string; chapter: number }[] = [];
-  for (const book of books) {
-    const chapters = BOOK_CHAPTERS[book];
-    for (let chapter = 1; chapter <= chapters; chapter++) {
-      queue.push({ book, chapter });
-    }
-  }
 
   const db = await openDB();
 
@@ -116,69 +107,56 @@ export async function downloadAllBible(
       req.onerror = () => reject(req.error);
     });
 
-  const fetchWithRetry = async (url: string, retries = 4): Promise<Response> => {
-    for (let attempt = 0; attempt <= retries; attempt++) {
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
-        const res = await fetch(url, { signal: controller.signal });
-        clearTimeout(timeoutId);
-
-        if (res.ok) return res;
-
-        // Backoff on rate-limits / transient errors
-        if (attempt < retries && (res.status === 429 || res.status >= 500)) {
-          const wait = 500 * Math.pow(2, attempt);
-          await new Promise((r) => setTimeout(r, wait));
-          continue;
-        }
-
-        throw new Error(`HTTP ${res.status}`);
-      } catch (err: any) {
-        if (attempt < retries && (err.name === "AbortError" || err.message?.includes("fetch"))) {
-          const wait = 500 * Math.pow(2, attempt);
-          await new Promise((r) => setTimeout(r, wait));
-          continue;
-        }
-        throw err;
-      }
-    }
-    throw new Error("Max retries reached");
-  };
-
-  const CONCURRENCY = 6; // Slightly higher concurrency for speed
   let completed = 0;
-  const failures: { book: string; chapter: number; error: unknown }[] = [];
+  const failures: { book: string; chapter: number }[] = [];
 
-  const worker = async () => {
-    while (queue.length) {
-      const item = queue.shift();
-      if (!item) return;
+  for (const book of books) {
+    const chapters = BOOK_CHAPTERS[book];
 
-      const { book, chapter } = item;
-      const key = `${book}_${chapter}`;
+    // Fetch all chapters for this book from our database in one query
+    const { data: dbChapters } = await supabase
+      .from("bible_chapters")
+      .select("chapter, data")
+      .eq("book", book);
+
+    const dbMap = new Map<number, any>();
+    (dbChapters || []).forEach((row: any) => dbMap.set(row.chapter, row.data));
+
+    for (let ch = 1; ch <= chapters; ch++) {
+      const key = `${book}_${ch}`;
 
       try {
-        // Skip if already cached (resume support) - faster check
+        // Skip if already in IndexedDB
         const existing = await getFromDb(key);
-        if (!existing) {
-          const url = `https://bible-api.com/${encodeURIComponent(book)}+${chapter}?translation=kjv`;
-          const response = await fetchWithRetry(url, 3);
+        if (existing) {
+          completed++;
+          onProgress?.(completed, totalChapters);
+          continue;
+        }
+
+        // Use database data
+        const dbData = dbMap.get(ch);
+        if (dbData) {
+          await saveToDb(key, dbData);
+        } else {
+          // Fallback to API if not in DB yet
+          const url = `https://bible-api.com/${encodeURIComponent(book)}+${ch}?translation=kjv`;
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 10000);
+          const response = await fetch(url, { signal: controller.signal });
+          clearTimeout(timeoutId);
           const data = await response.json();
           await saveToDb(key, data);
         }
       } catch (error) {
-        failures.push({ book, chapter, error });
+        failures.push({ book, chapter: ch });
       } finally {
         completed++;
         onProgress?.(completed, totalChapters);
       }
     }
-  };
+  }
 
-  await Promise.all(Array.from({ length: CONCURRENCY }, () => worker()));
-
-  // If we had failures, throw so the UI can show “resume” instead of “success”.
   if (failures.length > 0) {
     console.warn(`Offline download finished with ${failures.length} failures`, failures.slice(0, 5));
     throw new Error(`Offline download incomplete: ${failures.length} chapters failed`);
