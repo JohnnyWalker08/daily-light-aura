@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate, Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -110,12 +111,31 @@ export default function Bible() {
   const loadChapter = async () => {
     setLoading(true);
     try {
+      // 1. Try IndexedDB cache first (instant, offline)
       const offlineData = await getChapter(book, parseInt(chapter));
       if (offlineData) {
         setVerses(offlineData);
         setLoading(false);
         return;
       }
+
+      // 2. Try our own database (no external API dependency)
+      const { data: dbRow } = await supabase
+        .from("bible_chapters")
+        .select("data")
+        .eq("book", book)
+        .eq("chapter", parseInt(chapter))
+        .maybeSingle();
+
+      if (dbRow?.data) {
+        setVerses(dbRow.data);
+        // Cache in IndexedDB for offline use
+        await saveChapter(book, parseInt(chapter), dbRow.data);
+        setLoading(false);
+        return;
+      }
+
+      // 3. Last resort: external API fallback
       const response = await fetch(
         `https://bible-api.com/${encodeURIComponent(book)}+${chapter}?translation=${translation}`
       );
