@@ -14,6 +14,11 @@ import {
 const FONTS: { value: ReaderFontFamily; label: string; style: string }[] = [
   { value: "default", label: "Inter", style: "inherit" },
   { value: "serif", label: "Georgia", style: "Georgia, ui-serif, serif" },
+  { value: "lora", label: "Lora", style: "'Lora', Georgia, serif" },
+  { value: "merriweather", label: "Merriweather", style: "'Merriweather', Georgia, serif" },
+  { value: "literata", label: "Literata", style: "'Literata', Georgia, serif" },
+  { value: "source-serif", label: "Source Serif", style: "'Source Serif 4', Georgia, serif" },
+  { value: "crimson", label: "Crimson", style: "'Crimson Text', Georgia, serif" },
 ];
 
 const FONT_SIZES: { value: ReaderFontSize; label: string; size: number }[] = [
@@ -84,12 +89,12 @@ export function ReaderSettingsPanel({ isOpen, onClose }: Props) {
         {/* Font Family Selection */}
         <div className="mb-5">
           <p className="text-sm text-muted-foreground mb-2">Font</p>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             {FONTS.map((font) => (
               <button
                 key={font.value}
                 onClick={() => updateSettings({ fontFamily: font.value })}
-                className={`px-4 py-2 rounded-lg text-sm transition-all ${
+                className={`px-3 py-2 rounded-lg text-sm transition-all ${
                   settings.fontFamily === font.value
                     ? "bg-primary text-primary-foreground"
                     : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
