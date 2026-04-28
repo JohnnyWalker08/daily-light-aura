@@ -23,6 +23,14 @@ const BOOK_CHAPTERS: { [key: string]: number } = {
   "3 John": 1, "Jude": 1, "Revelation": 22
 };
 
+const isValidChapterData = (data: any) =>
+  Boolean(
+    data?.reference &&
+      Array.isArray(data?.verses) &&
+      data.verses.length > 0 &&
+      data.verses.every((verse: any) => typeof verse?.verse === "number" && typeof verse?.text === "string")
+  );
+
 function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
@@ -136,7 +144,7 @@ export async function downloadAllBible(
 
         // Use database data
         const dbData = dbMap.get(ch);
-        if (dbData) {
+        if (isValidChapterData(dbData)) {
           await saveToDb(key, dbData);
         } else {
           // Fallback to API if not in DB yet
@@ -145,7 +153,9 @@ export async function downloadAllBible(
           const timeoutId = setTimeout(() => controller.abort(), 10000);
           const response = await fetch(url, { signal: controller.signal });
           clearTimeout(timeoutId);
+          if (!response.ok) throw new Error(`Bible API returned ${response.status}`);
           const data = await response.json();
+          if (!isValidChapterData(data)) throw new Error("Bible API returned incomplete chapter data");
           await saveToDb(key, data);
         }
       } catch (error) {
