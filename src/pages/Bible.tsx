@@ -66,6 +66,14 @@ const BOOK_CHAPTERS: Record<string, number> = {
   "3 John": 1, "Jude": 1, "Revelation": 22,
 };
 
+const isValidChapterData = (data: any) =>
+  Boolean(
+    data?.reference &&
+      Array.isArray(data?.verses) &&
+      data.verses.length > 0 &&
+      data.verses.every((verse: any) => typeof verse?.verse === "number" && typeof verse?.text === "string")
+  );
+
 export default function Bible() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -113,21 +121,21 @@ export default function Bible() {
     try {
       // 1. Try IndexedDB cache first (instant, offline)
       const offlineData = await getChapter(book, parseInt(chapter));
-      if (offlineData) {
+      if (isValidChapterData(offlineData)) {
         setVerses(offlineData);
         setLoading(false);
         return;
       }
 
       // 2. Try our own database (no external API dependency)
-      const { data: dbRow } = await supabase
+      const { data: dbRow, error: dbError } = await supabase
         .from("bible_chapters")
         .select("data")
         .eq("book", book)
         .eq("chapter", parseInt(chapter))
         .maybeSingle();
 
-      if (dbRow?.data) {
+      if (!dbError && isValidChapterData(dbRow?.data)) {
         setVerses(dbRow.data);
         // Cache in IndexedDB for offline use
         await saveChapter(book, parseInt(chapter), dbRow.data);
@@ -135,14 +143,17 @@ export default function Bible() {
         return;
       }
 
-      // 3. Last resort: external API fallback
+      // 3. Last resort: external API fallback; never trust it unless the payload is complete.
       const response = await fetch(
         `https://bible-api.com/${encodeURIComponent(book)}+${chapter}?translation=${translation}`
       );
+      if (!response.ok) throw new Error(`Bible API returned ${response.status}`);
       const data = await response.json();
+      if (!isValidChapterData(data)) throw new Error("Bible API returned incomplete chapter data");
       setVerses(data);
       await saveChapter(book, parseInt(chapter), data);
-    } catch {
+    } catch (error) {
+      console.error("Chapter loading failed", error);
       toast.error("Failed to load chapter");
     } finally {
       setLoading(false);
