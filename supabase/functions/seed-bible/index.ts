@@ -18,6 +18,7 @@ const BOOK_CHAPTERS: Record<string, number> = {
 };
 
 const BOOKS = Object.keys(BOOK_CHAPTERS);
+const TOTAL_CHAPTERS = Object.values(BOOK_CHAPTERS).reduce((a, b) => a + b, 0);
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -37,7 +38,7 @@ async function fetchWithRetry(url: string, retries = 3): Promise<Response> {
         continue;
       }
       throw new Error(`HTTP ${res.status}`);
-    } catch (err: any) {
+    } catch (err) {
       if (attempt < retries) {
         await new Promise((r) => setTimeout(r, 800 * Math.pow(2, attempt)));
         continue;
@@ -48,117 +49,130 @@ async function fetchWithRetry(url: string, retries = 3): Promise<Response> {
   throw new Error("Max retries reached");
 }
 
+async function getExistingChapters(supabase: ReturnType<typeof createClient>) {
+  const rows: Array<{ book: string; chapter: number }> = [];
+  const pageSize = 1000;
+
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await supabase
+      .from("bible_chapters")
+      .select("book, chapter")
+      .order("book", { ascending: true })
+      .order("chapter", { ascending: true })
+      .range(from, from + pageSize - 1);
+
+    if (error) throw error;
+    rows.push(...((data || []) as Array<{ book: string; chapter: number }>));
+    if (!data || data.length < pageSize) break;
+  }
+
+  return rows;
+}
+
+function isValidChapterData(data: any) {
+  return Boolean(
+    data?.reference &&
+      Array.isArray(data?.verses) &&
+      data.verses.length > 0 &&
+      data.verses.every((verse: any) => typeof verse?.verse === "number" && typeof verse?.text === "string" && verse.text.trim())
+  );
+}
+
+function buildMissingQueue(existingSet: Set<string>, targetBook: string | null, limit: number) {
+  const queue: Array<{ book: string; chapter: number }> = [];
+  const books = targetBook ? [targetBook] : BOOKS;
+
+  for (const book of books) {
+    const chapters = BOOK_CHAPTERS[book];
+    if (!chapters) continue;
+    for (let chapter = 1; chapter <= chapters; chapter++) {
+      if (!existingSet.has(`${book}_${chapter}`)) {
+        queue.push({ book, chapter });
+        if (queue.length >= limit) return queue;
+      }
+    }
+  }
+
+  return queue;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
-  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  const supabase = createClient(supabaseUrl, serviceKey);
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, serviceKey);
+    const url = new URL(req.url);
+    const targetBook = url.searchParams.get("book");
+    const requestedLimit = Number(url.searchParams.get("limit") || "36");
+    const limit = Math.max(1, Math.min(60, Number.isFinite(requestedLimit) ? requestedLimit : 36));
 
-  // Accept optional book param to seed a specific book, or find the next missing book
-  const url = new URL(req.url);
-  let targetBook = url.searchParams.get("book");
+    const existing = await getExistingChapters(supabase);
+    const existingSet = new Set(existing.map((r) => `${r.book}_${r.chapter}`));
 
-  // Get all existing chapters
-  const { data: existing } = await supabase
-    .from("bible_chapters")
-    .select("book, chapter");
+    if (existingSet.size >= TOTAL_CHAPTERS) {
+      return new Response(
+        JSON.stringify({ status: "complete", seeded: 0, totalSeeded: existingSet.size, total: TOTAL_CHAPTERS }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
-  const existingSet = new Set((existing || []).map((r: any) => `${r.book}_${r.chapter}`));
-  const totalChapters = Object.values(BOOK_CHAPTERS).reduce((a, b) => a + b, 0);
+    const queue = buildMissingQueue(existingSet, targetBook, limit);
+    let seeded = 0;
+    const failures: Array<{ book: string; chapter: number; error: string }> = [];
 
-  if (existingSet.size >= totalChapters) {
-    return new Response(
-      JSON.stringify({ status: "complete", seeded: totalChapters, total: totalChapters }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-  }
+    for (let i = 0; i < queue.length; i += 3) {
+      const batch = queue.slice(i, i + 3);
+      const results = await Promise.allSettled(
+        batch.map(async ({ book, chapter }) => {
+          const apiUrl = `https://bible-api.com/${encodeURIComponent(book)}+${chapter}?translation=kjv`;
+          const res = await fetchWithRetry(apiUrl);
+          const data = await res.json();
+          if (!isValidChapterData(data)) throw new Error("Incomplete chapter payload");
+          const { error } = await supabase
+            .from("bible_chapters")
+            .upsert({ book, chapter, data }, { onConflict: "book,chapter" });
+          if (error) throw error;
+        })
+      );
 
-  // Find the next book(s) that need seeding
-  if (!targetBook) {
-    for (const book of BOOKS) {
-      for (let ch = 1; ch <= BOOK_CHAPTERS[book]; ch++) {
-        if (!existingSet.has(`${book}_${ch}`)) {
-          targetBook = book;
-          break;
+      for (let j = 0; j < results.length; j++) {
+        const result = results[j];
+        const item = batch[j];
+        if (result.status === "fulfilled") {
+          seeded++;
+          existingSet.add(`${item.book}_${item.chapter}`);
+        } else {
+          failures.push({ book: item.book, chapter: item.chapter, error: String(result.reason?.message || result.reason) });
         }
       }
-      if (targetBook) break;
-    }
-  }
 
-  if (!targetBook) {
+      if (i + 3 < queue.length) await new Promise((r) => setTimeout(r, 250));
+    }
+
+    const nextQueue = buildMissingQueue(existingSet, null, 1);
+    const totalSeeded = existingSet.size;
+
     return new Response(
-      JSON.stringify({ status: "complete", seeded: existingSet.size, total: totalChapters }),
+      JSON.stringify({
+        status: totalSeeded >= TOTAL_CHAPTERS ? "complete" : "in_progress",
+        seeded,
+        attempted: queue.length,
+        failures,
+        totalSeeded,
+        total: TOTAL_CHAPTERS,
+        remaining: Math.max(0, TOTAL_CHAPTERS - totalSeeded),
+        next: nextQueue[0] || null,
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
+  } catch (error) {
+    return new Response(JSON.stringify({ status: "error", error: String(error?.message || error) }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500,
+    });
   }
-
-  // Seed the target book
-  const chapters = BOOK_CHAPTERS[targetBook];
-  const missing: number[] = [];
-  for (let ch = 1; ch <= chapters; ch++) {
-    if (!existingSet.has(`${targetBook}_${ch}`)) {
-      missing.push(ch);
-    }
-  }
-
-  console.log(`Seeding ${targetBook}: ${missing.length} missing chapters`);
-
-  let seeded = 0;
-  const failures: number[] = [];
-
-  // Process 3 at a time
-  for (let i = 0; i < missing.length; i += 3) {
-    const batch = missing.slice(i, i + 3);
-    const results = await Promise.allSettled(
-      batch.map(async (ch) => {
-        const apiUrl = `https://bible-api.com/${encodeURIComponent(targetBook!)}+${ch}?translation=kjv`;
-        const res = await fetchWithRetry(apiUrl);
-        const data = await res.json();
-        const { error } = await supabase.from("bible_chapters").upsert(
-          { book: targetBook, chapter: ch, data },
-          { onConflict: "book,chapter" }
-        );
-        if (error) throw error;
-      })
-    );
-
-    for (let j = 0; j < results.length; j++) {
-      if (results[j].status === "fulfilled") seeded++;
-      else failures.push(batch[j]);
-    }
-
-    if (i + 3 < missing.length) {
-      await new Promise((r) => setTimeout(r, 250));
-    }
-  }
-
-  // Find next book needing seeding
-  let nextBook: string | null = null;
-  const bookIdx = BOOKS.indexOf(targetBook);
-  for (let i = bookIdx + 1; i < BOOKS.length; i++) {
-    for (let ch = 1; ch <= BOOK_CHAPTERS[BOOKS[i]]; ch++) {
-      if (!existingSet.has(`${BOOKS[i]}_${ch}`)) {
-        nextBook = BOOKS[i];
-        break;
-      }
-    }
-    if (nextBook) break;
-  }
-
-  return new Response(
-    JSON.stringify({
-      status: nextBook || failures.length > 0 ? "in_progress" : "complete",
-      book: targetBook,
-      seeded,
-      failures: failures.length,
-      totalSeeded: existingSet.size + seeded,
-      total: totalChapters,
-      nextBook,
-    }),
-    { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-  );
 });
