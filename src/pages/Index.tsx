@@ -7,6 +7,7 @@ import { DailyDevotional } from "@/components/DailyDevotional";
 import { DailyReflectionWidget } from "@/components/DailyReflectionWidget";
 import { DidYouKnow } from "@/components/DidYouKnow";
 import { OnboardingMenu } from "@/components/OnboardingMenu";
+import { DailyRecap } from "@/components/DailyRecap";
 import { getActivePlans } from "@/lib/plansStorage";
 import { useState, useEffect } from "react";
 
@@ -35,6 +36,8 @@ const Index = () => {
         </div>
 
         <div className="mb-12"><VerseOfTheDay /></div>
+
+        <div className="mb-12"><DailyRecap /></div>
 
         {/* Daily Devotional Widget */}
         <div className="mb-12">
