@@ -20,6 +20,8 @@ import Notes from "./pages/Notes";
 import Progress from "./pages/Progress";
 import More from "./pages/More";
 import Settings from "./pages/Settings";
+import Insights from "./pages/Insights";
+import Weary from "./pages/Weary";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -53,6 +55,8 @@ const App = () => {
               <Route path="/progress" element={<Progress />} />
               <Route path="/more" element={<More />} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="/insights" element={<Insights />} />
+              <Route path="/weary" element={<Weary />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="*" element={<NotFound />} />
             </Routes>

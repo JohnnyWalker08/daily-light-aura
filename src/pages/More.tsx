@@ -11,6 +11,8 @@ import {
   FileText,
   Search,
   Heart,
+  Sparkles,
+  HeartHandshake,
   LogIn,
   LogOut
 } from "lucide-react";
@@ -55,6 +57,8 @@ const More = () => {
         { icon: Bookmark, label: "Bookmarks", path: "/bookmarks", description: "Your saved verses" },
         { icon: FileText, label: "Notes", path: "/notes", description: "Your reflections" },
         { icon: TrendingUp, label: "Progress", path: "/progress", description: "Track your reading" },
+        { icon: Sparkles, label: "Insight Journal", path: "/insights", description: "What the Word is showing you" },
+        { icon: HeartHandshake, label: "I'm weary today", path: "/weary", description: "Rest, comfort and God's love" },
         { icon: Heart, label: "Prayer", path: "/prayer", description: "Prayer journal" },
       ]
     }
