@@ -32,6 +32,7 @@ import {
 import { getUserSettings, onSettingsChange } from "@/lib/settingsStorage";
 import { NoteEditor } from "@/components/NoteEditor";
 import { markDayComplete, getUserPlanProgress, READING_PLANS } from "@/lib/plansStorage";
+import { ReviewSheet } from "@/components/ReviewSheet";
 
 const BOOKS = [
   "Genesis", "Exodus", "Leviticus", "Numbers", "Deuteronomy",
@@ -96,6 +97,7 @@ export default function Bible() {
   const [showHighlightPicker, setShowHighlightPicker] = useState(false);
   const [translation, setTranslation] = useState(() => getUserSettings().translation);
   const [showSettingsPanel, setShowSettingsPanel] = useState(false);
+  const [showReview, setShowReview] = useState(false);
 
   // Update book/chapter from URL params
   useEffect(() => {
@@ -177,6 +179,14 @@ export default function Bible() {
   };
 
   const handleMarkRead = () => {
+    if (!chapterRead) {
+      setShowReview(true);
+      return;
+    }
+    completeChapter();
+  };
+
+  const completeChapter = () => {
     markChapterAsRead(book, parseInt(chapter));
     setChapterRead(true);
     toast.success("Chapter marked as read!");
@@ -564,6 +574,16 @@ export default function Bible() {
             verse={noteEditor.verse} 
             onClose={() => setNoteEditor(null)} 
             onSave={loadNotes} 
+          />
+        )}
+
+        {showReview && (
+          <ReviewSheet
+            book={book}
+            chapter={parseInt(chapter)}
+            verses={verses}
+            onClose={() => setShowReview(false)}
+            onComplete={completeChapter}
           />
         )}
 
