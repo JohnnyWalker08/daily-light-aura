@@ -346,7 +346,27 @@ export default function Bible() {
               </Button>
             </div>
 
-            <div className="flex gap-2 sm:ml-auto">
+            <div className="flex gap-2 sm:ml-auto flex-wrap justify-center">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowTranslationPicker(true)}
+                title="Change translation"
+              >
+                <Languages className="h-4 w-4 sm:mr-2" />
+                <span className="font-semibold">{getTranslation(translation).abbrev}</span>
+              </Button>
+              <Button
+                variant={compareTranslation ? "secondary" : "outline"}
+                size="sm"
+                onClick={() => (compareTranslation ? setCompareTranslation(null) : setShowComparePicker(true))}
+                title="Compare translations side by side"
+              >
+                <Columns2 className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">
+                  {compareTranslation ? getTranslation(compareTranslation).abbrev : "Compare"}
+                </span>
+              </Button>
               <Button variant="outline" size="sm" onClick={() => setNoteEditor({})} title="Add chapter note">
                 <FileText className="h-4 w-4 sm:mr-2" />
                 <span className="hidden sm:inline">Note</span>
@@ -364,6 +384,7 @@ export default function Bible() {
             </div>
           </div>
         </Card>
+
 
         {/* Settings Toggle Button - floating in corner */}
         <Button
