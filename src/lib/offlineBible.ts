@@ -47,31 +47,37 @@ function openDB(): Promise<IDBDatabase> {
   });
 }
 
-export async function saveChapter(book: string, chapter: number, data: any) {
+/** KJV keeps the legacy key shape so existing offline downloads keep working. */
+function chapterKey(book: string, chapter: number, translation = "kjv") {
+  return translation === "kjv" ? `${book}_${chapter}` : `${book}_${chapter}@${translation}`;
+}
+
+export async function saveChapter(book: string, chapter: number, data: any, translation = "kjv") {
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const transaction = db.transaction([STORE_NAME], 'readwrite');
     const store = transaction.objectStore(STORE_NAME);
-    const key = `${book}_${chapter}`;
-    
+    const key = chapterKey(book, chapter, translation);
+
     const request = store.put({ key, data });
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
   });
 }
 
-export async function getChapter(book: string, chapter: number): Promise<any | null> {
+export async function getChapter(book: string, chapter: number, translation = "kjv"): Promise<any | null> {
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const transaction = db.transaction([STORE_NAME], 'readonly');
     const store = transaction.objectStore(STORE_NAME);
-    const key = `${book}_${chapter}`;
-    
+    const key = chapterKey(book, chapter, translation);
+
     const request = store.get(key);
     request.onsuccess = () => resolve(request.result?.data || null);
     request.onerror = () => reject(request.error);
   });
 }
+
 
 export async function isOfflineDataAvailable(): Promise<boolean> {
   try {

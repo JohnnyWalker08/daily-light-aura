@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate, Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -13,12 +12,13 @@ import {
   Highlighter,
   X,
   ArrowLeft,
-  Settings2
+  Settings2,
+  Columns2,
+  Languages
 } from "lucide-react";
 import { ReaderSettingsPanel } from "@/components/ReaderSettingsPanel";
 import { ScriptureRecommendations } from "@/components/ScriptureRecommendations";
 import { toast } from "sonner";
-import { getChapter, saveChapter } from "@/lib/offlineBible";
 import { markChapterAsRead, isChapterRead } from "@/lib/progressStorage";
 import { getNotesForChapter, Note } from "@/lib/notesStorage";
 import {
@@ -29,10 +29,15 @@ import {
   HighlightColor,
   VerseHighlight,
 } from "@/lib/highlightStorage";
-import { getUserSettings, onSettingsChange } from "@/lib/settingsStorage";
+import { getUserSettings, onSettingsChange, saveUserSettings } from "@/lib/settingsStorage";
 import { NoteEditor } from "@/components/NoteEditor";
 import { markDayComplete, getUserPlanProgress, READING_PLANS } from "@/lib/plansStorage";
 import { ReviewSheet } from "@/components/ReviewSheet";
+import { TranslationPicker } from "@/components/TranslationPicker";
+import { VersePeek } from "@/components/VersePeek";
+import { loadChapterText, type ChapterData } from "@/lib/bibleText";
+import { getTranslation } from "@/lib/translations";
+
 
 const BOOKS = [
   "Genesis", "Exodus", "Leviticus", "Numbers", "Deuteronomy",
@@ -67,14 +72,6 @@ const BOOK_CHAPTERS: Record<string, number> = {
   "3 John": 1, "Jude": 1, "Revelation": 22,
 };
 
-const isValidChapterData = (data: any) =>
-  Boolean(
-    data?.reference &&
-      Array.isArray(data?.verses) &&
-      data.verses.length > 0 &&
-      data.verses.every((verse: any) => typeof verse?.verse === "number" && typeof verse?.text === "string")
-  );
-
 export default function Bible() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -87,7 +84,7 @@ export default function Bible() {
   
   const [book, setBook] = useState(paramBook || "John");
   const [chapter, setChapter] = useState(paramChapter || "1");
-  const [verses, setVerses] = useState<any>(null);
+  const [verses, setVerses] = useState<ChapterData | null>(null);
   const [loading, setLoading] = useState(false);
   const [chapterRead, setChapterRead] = useState(false);
   const [notes, setNotes] = useState<Note[]>([]);
@@ -98,6 +95,14 @@ export default function Bible() {
   const [translation, setTranslation] = useState(() => getUserSettings().translation);
   const [showSettingsPanel, setShowSettingsPanel] = useState(false);
   const [showReview, setShowReview] = useState(false);
+
+  // Multi-translation UI state
+  const [showTranslationPicker, setShowTranslationPicker] = useState(false);
+  const [showComparePicker, setShowComparePicker] = useState(false);
+  const [compareTranslation, setCompareTranslation] = useState<string | null>(null);
+  const [compareVerses, setCompareVerses] = useState<ChapterData | null>(null);
+  const [compareLoading, setCompareLoading] = useState(false);
+  const [peekVerse, setPeekVerse] = useState<number | null>(null);
 
   // Update book/chapter from URL params
   useEffect(() => {
@@ -113,47 +118,41 @@ export default function Bible() {
   }, [book, chapter, translation]);
 
   useEffect(() => {
+    if (!compareTranslation) {
+      setCompareVerses(null);
+      return;
+    }
+    let cancelled = false;
+    setCompareLoading(true);
+    loadChapterText(book, parseInt(chapter), compareTranslation)
+      .then((data) => {
+        if (cancelled) return;
+        if (!data) toast.error(`Couldn't load ${getTranslation(compareTranslation).abbrev} for this chapter`);
+        setCompareVerses(data);
+      })
+      .finally(() => !cancelled && setCompareLoading(false));
+    return () => {
+      cancelled = true;
+    };
+  }, [book, chapter, compareTranslation]);
+
+  useEffect(() => {
     return onSettingsChange(() => {
       setTranslation(getUserSettings().translation);
     });
   }, []);
 
+  const changeTranslation = (id: string) => {
+    setTranslation(id as typeof translation);
+    saveUserSettings({ ...getUserSettings(), translation: id as typeof translation });
+  };
+
   const loadChapter = async () => {
     setLoading(true);
     try {
-      // 1. Try IndexedDB cache first (instant, offline)
-      const offlineData = await getChapter(book, parseInt(chapter));
-      if (isValidChapterData(offlineData)) {
-        setVerses(offlineData);
-        setLoading(false);
-        return;
-      }
-
-      // 2. Try our own database (no external API dependency)
-      const { data: dbRow, error: dbError } = await supabase
-        .from("bible_chapters")
-        .select("data")
-        .eq("book", book)
-        .eq("chapter", parseInt(chapter))
-        .maybeSingle();
-
-      if (!dbError && isValidChapterData(dbRow?.data)) {
-        setVerses(dbRow.data);
-        // Cache in IndexedDB for offline use
-        await saveChapter(book, parseInt(chapter), dbRow.data);
-        setLoading(false);
-        return;
-      }
-
-      // 3. Last resort: external API fallback; never trust it unless the payload is complete.
-      const response = await fetch(
-        `https://bible-api.com/${encodeURIComponent(book)}+${chapter}?translation=${translation}`
-      );
-      if (!response.ok) throw new Error(`Bible API returned ${response.status}`);
-      const data = await response.json();
-      if (!isValidChapterData(data)) throw new Error("Bible API returned incomplete chapter data");
+      const data = await loadChapterText(book, parseInt(chapter), translation);
+      if (!data) throw new Error("Chapter unavailable");
       setVerses(data);
-      await saveChapter(book, parseInt(chapter), data);
     } catch (error) {
       console.error("Chapter loading failed", error);
       toast.error("Failed to load chapter");
@@ -161,6 +160,7 @@ export default function Bible() {
       setLoading(false);
     }
   };
+
 
   const loadNotes = async () => {
     const chapterNotes = await getNotesForChapter(book, parseInt(chapter));
@@ -346,7 +346,27 @@ export default function Bible() {
               </Button>
             </div>
 
-            <div className="flex gap-2 sm:ml-auto">
+            <div className="flex gap-2 sm:ml-auto flex-wrap justify-center">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowTranslationPicker(true)}
+                title="Change translation"
+              >
+                <Languages className="h-4 w-4 sm:mr-2" />
+                <span className="font-semibold">{getTranslation(translation).abbrev}</span>
+              </Button>
+              <Button
+                variant={compareTranslation ? "secondary" : "outline"}
+                size="sm"
+                onClick={() => (compareTranslation ? setCompareTranslation(null) : setShowComparePicker(true))}
+                title="Compare translations side by side"
+              >
+                <Columns2 className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">
+                  {compareTranslation ? getTranslation(compareTranslation).abbrev : "Compare"}
+                </span>
+              </Button>
               <Button variant="outline" size="sm" onClick={() => setNoteEditor({})} title="Add chapter note">
                 <FileText className="h-4 w-4 sm:mr-2" />
                 <span className="hidden sm:inline">Note</span>
@@ -364,6 +384,7 @@ export default function Bible() {
             </div>
           </div>
         </Card>
+
 
         {/* Settings Toggle Button - floating in corner */}
         <Button
@@ -386,9 +407,20 @@ export default function Bible() {
             </div>
           ) : verses ? (
             <div>
-              <h2 className="text-2xl sm:text-3xl font-display font-bold text-foreground mb-8">
-                {verses.reference}
-              </h2>
+              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 mb-8">
+                <h2 className="text-2xl sm:text-3xl font-display font-bold text-foreground">
+                  {verses.reference}
+                </h2>
+                <span className="text-xs font-semibold px-2 py-1 rounded-lg bg-primary/10 text-primary">
+                  {getTranslation(translation).abbrev}
+                </span>
+                {compareTranslation && (
+                  <span className="text-xs font-semibold px-2 py-1 rounded-lg bg-muted text-muted-foreground">
+                    vs {getTranslation(compareTranslation).abbrev}
+                    {compareLoading ? " · loading…" : ""}
+                  </span>
+                )}
+              </div>
               
               {/* Improved verse layout - full width, flowing text */}
               <div 
@@ -404,26 +436,51 @@ export default function Bible() {
                   const highlightBg = highlight 
                     ? HIGHLIGHT_COLORS.find(c => c.color === highlight.color)?.bg 
                     : '';
+                  const compareText = compareTranslation
+                    ? compareVerses?.verses.find((v) => v.verse === verse.verse)?.text
+                    : null;
                   
                   return (
                     <div 
                       key={verse.verse} 
                       className={`group relative rounded-lg transition-colors ${highlightBg}`}
                     >
-                      <div 
-                        className="cursor-pointer py-1"
-                        onClick={() => handleVerseClick(verse.verse)}
-                      >
-                        <span className="text-primary font-bold mr-2 align-super" style={{ fontSize: "0.85em" }}>
-                          {verse.verse}
-                        </span>
-                        <span className="text-foreground leading-relaxed">
-                          {verse.text}
-                        </span>
+                      <div className={compareTranslation ? "grid sm:grid-cols-2 gap-x-6 gap-y-2" : ""}>
+                        <div 
+                          className="cursor-pointer py-1"
+                          onClick={() => handleVerseClick(verse.verse)}
+                        >
+                          <span className="text-primary font-bold mr-2 align-super" style={{ fontSize: "0.85em" }}>
+                            {verse.verse}
+                          </span>
+                          <span className="text-foreground leading-relaxed">
+                            {verse.text}
+                          </span>
+                        </div>
+
+                        {compareTranslation && (
+                          <div className="py-1 sm:border-l sm:border-border/50 sm:pl-6">
+                            <span className="text-muted-foreground font-bold mr-2 align-super" style={{ fontSize: "0.85em" }}>
+                              {verse.verse}
+                            </span>
+                            <span className="text-muted-foreground leading-relaxed">
+                              {compareText ?? (compareLoading ? "…" : "—")}
+                            </span>
+                          </div>
+                        )}
                       </div>
                       
                       {/* Quick actions on hover */}
-                      <div className="absolute right-0 top-0 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-background/90 rounded-lg p-1">
+                      <div className="absolute right-0 top-0 flex gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity bg-background/90 rounded-lg p-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          title="See this verse in every version"
+                          onClick={(e) => { e.stopPropagation(); setPeekVerse(verse.verse); }}
+                        >
+                          <Languages className="h-4 w-4" />
+                        </Button>
                         <Button 
                           variant="ghost" 
                           size="icon" 
@@ -449,6 +506,7 @@ export default function Bible() {
                           <Bookmark className="h-4 w-4" />
                         </Button>
                       </div>
+
                       
                       {hasNoteForVerse(verse.verse) && (
                         <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary/50 rounded-l-lg" />
@@ -587,11 +645,37 @@ export default function Bible() {
           />
         )}
 
+        <TranslationPicker
+          open={showTranslationPicker}
+          onOpenChange={setShowTranslationPicker}
+          value={translation}
+          onSelect={changeTranslation}
+          excludeId={compareTranslation ?? undefined}
+        />
+
+        <TranslationPicker
+          open={showComparePicker}
+          onOpenChange={setShowComparePicker}
+          value={compareTranslation ?? ""}
+          onSelect={setCompareTranslation}
+          title="Compare with…"
+          excludeId={translation}
+        />
+
+        <VersePeek
+          book={book}
+          chapter={parseInt(chapter)}
+          verse={peekVerse}
+          currentTranslation={translation}
+          onClose={() => setPeekVerse(null)}
+        />
+
         {/* Reader Settings Panel */}
         <ReaderSettingsPanel 
           isOpen={showSettingsPanel} 
           onClose={() => setShowSettingsPanel(false)} 
         />
+
       </div>
     </div>
   );

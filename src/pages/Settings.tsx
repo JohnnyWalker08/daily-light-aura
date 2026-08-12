@@ -12,22 +12,22 @@ import {
   type ReaderFontFamily,
   type ReaderFontSize,
 } from "@/lib/settingsStorage";
+import { TranslationPicker } from "@/components/TranslationPicker";
+import { getTranslation } from "@/lib/translations";
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState(() => getUserSettings());
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   useEffect(() => {
     setSettings(getUserSettings());
   }, []);
 
   const translationLabel = useMemo(() => {
-    const map: Record<BibleTranslation, string> = {
-      kjv: "KJV (Default)",
-      web: "WEB",
-      asv: "ASV",
-    };
-    return map[settings.translation];
+    const meta = getTranslation(settings.translation);
+    return `${meta.abbrev} — ${meta.name}`;
   }, [settings.translation]);
+
 
   const update = (patch: Partial<typeof settings>) => {
     const next = { ...settings, ...patch };
@@ -135,20 +135,17 @@ export default function SettingsPage() {
 
           <div className="grid gap-2">
             <p className="text-sm font-medium">Current: {translationLabel}</p>
-            <Select
-              value={settings.translation}
-              onValueChange={(v) => update({ translation: v as BibleTranslation })}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="kjv">KJV</SelectItem>
-                <SelectItem value="web">WEB</SelectItem>
-                <SelectItem value="asv">ASV</SelectItem>
-              </SelectContent>
-            </Select>
+            <Button variant="outline" onClick={() => setPickerOpen(true)} className="justify-start">
+              Browse all versions
+            </Button>
           </div>
+          <TranslationPicker
+            open={pickerOpen}
+            onOpenChange={setPickerOpen}
+            value={settings.translation}
+            onSelect={(id) => update({ translation: id })}
+          />
+
         </Card>
 
         <div className="flex gap-2">
