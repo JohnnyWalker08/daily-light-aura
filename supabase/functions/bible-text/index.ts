@@ -21,12 +21,10 @@ const USFM: Record<string, string> = {
 const KEY = Deno.env.get("YOUVERSION_API_KEY") || "";
 
 const HEADER_SETS: Array<[string, Record<string, string>]> = [
-  ["x-app-id", { "X-App-Id": KEY, Accept: "application/json" }],
-  ["bearer", { Authorization: `Bearer ${KEY}`, Accept: "application/json" }],
-  ["x-api-key", { "x-api-key": KEY, Accept: "application/json" }],
-  ["api-key", { "api-key": KEY, Accept: "application/json" }],
-  ["token", { Authorization: `Token ${KEY}`, Accept: "application/json" }],
+  ["yvp", { "x-yvp-app-key": KEY, Accept: "application/json" }],
+  ["yvp-bearer", { "x-yvp-app-key": KEY, Authorization: `Bearer ${KEY}`, Accept: "application/json" }],
 ];
+
 
 const URL_BUILDERS: Array<[string, (v: string, usfm: string) => string]> = [
   ["v1-chapters", (v, u) => `https://api.youversion.com/v1/bibles/${v}/chapters/${u}`],
