@@ -72,14 +72,6 @@ const BOOK_CHAPTERS: Record<string, number> = {
   "3 John": 1, "Jude": 1, "Revelation": 22,
 };
 
-const isValidChapterData = (data: any) =>
-  Boolean(
-    data?.reference &&
-      Array.isArray(data?.verses) &&
-      data.verses.length > 0 &&
-      data.verses.every((verse: any) => typeof verse?.verse === "number" && typeof verse?.text === "string")
-  );
-
 export default function Bible() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -92,7 +84,7 @@ export default function Bible() {
   
   const [book, setBook] = useState(paramBook || "John");
   const [chapter, setChapter] = useState(paramChapter || "1");
-  const [verses, setVerses] = useState<any>(null);
+  const [verses, setVerses] = useState<ChapterData | null>(null);
   const [loading, setLoading] = useState(false);
   const [chapterRead, setChapterRead] = useState(false);
   const [notes, setNotes] = useState<Note[]>([]);
@@ -103,6 +95,14 @@ export default function Bible() {
   const [translation, setTranslation] = useState(() => getUserSettings().translation);
   const [showSettingsPanel, setShowSettingsPanel] = useState(false);
   const [showReview, setShowReview] = useState(false);
+
+  // Multi-translation UI state
+  const [showTranslationPicker, setShowTranslationPicker] = useState(false);
+  const [showComparePicker, setShowComparePicker] = useState(false);
+  const [compareTranslation, setCompareTranslation] = useState<string | null>(null);
+  const [compareVerses, setCompareVerses] = useState<ChapterData | null>(null);
+  const [compareLoading, setCompareLoading] = useState(false);
+  const [peekVerse, setPeekVerse] = useState<number | null>(null);
 
   // Update book/chapter from URL params
   useEffect(() => {
@@ -118,47 +118,41 @@ export default function Bible() {
   }, [book, chapter, translation]);
 
   useEffect(() => {
+    if (!compareTranslation) {
+      setCompareVerses(null);
+      return;
+    }
+    let cancelled = false;
+    setCompareLoading(true);
+    loadChapterText(book, parseInt(chapter), compareTranslation)
+      .then((data) => {
+        if (cancelled) return;
+        if (!data) toast.error(`Couldn't load ${getTranslation(compareTranslation).abbrev} for this chapter`);
+        setCompareVerses(data);
+      })
+      .finally(() => !cancelled && setCompareLoading(false));
+    return () => {
+      cancelled = true;
+    };
+  }, [book, chapter, compareTranslation]);
+
+  useEffect(() => {
     return onSettingsChange(() => {
       setTranslation(getUserSettings().translation);
     });
   }, []);
 
+  const changeTranslation = (id: string) => {
+    setTranslation(id as typeof translation);
+    saveUserSettings({ ...getUserSettings(), translation: id as typeof translation });
+  };
+
   const loadChapter = async () => {
     setLoading(true);
     try {
-      // 1. Try IndexedDB cache first (instant, offline)
-      const offlineData = await getChapter(book, parseInt(chapter));
-      if (isValidChapterData(offlineData)) {
-        setVerses(offlineData);
-        setLoading(false);
-        return;
-      }
-
-      // 2. Try our own database (no external API dependency)
-      const { data: dbRow, error: dbError } = await supabase
-        .from("bible_chapters")
-        .select("data")
-        .eq("book", book)
-        .eq("chapter", parseInt(chapter))
-        .maybeSingle();
-
-      if (!dbError && isValidChapterData(dbRow?.data)) {
-        setVerses(dbRow.data);
-        // Cache in IndexedDB for offline use
-        await saveChapter(book, parseInt(chapter), dbRow.data);
-        setLoading(false);
-        return;
-      }
-
-      // 3. Last resort: external API fallback; never trust it unless the payload is complete.
-      const response = await fetch(
-        `https://bible-api.com/${encodeURIComponent(book)}+${chapter}?translation=${translation}`
-      );
-      if (!response.ok) throw new Error(`Bible API returned ${response.status}`);
-      const data = await response.json();
-      if (!isValidChapterData(data)) throw new Error("Bible API returned incomplete chapter data");
+      const data = await loadChapterText(book, parseInt(chapter), translation);
+      if (!data) throw new Error("Chapter unavailable");
       setVerses(data);
-      await saveChapter(book, parseInt(chapter), data);
     } catch (error) {
       console.error("Chapter loading failed", error);
       toast.error("Failed to load chapter");
@@ -166,6 +160,7 @@ export default function Bible() {
       setLoading(false);
     }
   };
+
 
   const loadNotes = async () => {
     const chapterNotes = await getNotesForChapter(book, parseInt(chapter));
