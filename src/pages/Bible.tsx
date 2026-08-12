@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate, Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -13,12 +12,13 @@ import {
   Highlighter,
   X,
   ArrowLeft,
-  Settings2
+  Settings2,
+  Columns2,
+  Languages
 } from "lucide-react";
 import { ReaderSettingsPanel } from "@/components/ReaderSettingsPanel";
 import { ScriptureRecommendations } from "@/components/ScriptureRecommendations";
 import { toast } from "sonner";
-import { getChapter, saveChapter } from "@/lib/offlineBible";
 import { markChapterAsRead, isChapterRead } from "@/lib/progressStorage";
 import { getNotesForChapter, Note } from "@/lib/notesStorage";
 import {
@@ -29,10 +29,15 @@ import {
   HighlightColor,
   VerseHighlight,
 } from "@/lib/highlightStorage";
-import { getUserSettings, onSettingsChange } from "@/lib/settingsStorage";
+import { getUserSettings, onSettingsChange, saveUserSettings } from "@/lib/settingsStorage";
 import { NoteEditor } from "@/components/NoteEditor";
 import { markDayComplete, getUserPlanProgress, READING_PLANS } from "@/lib/plansStorage";
 import { ReviewSheet } from "@/components/ReviewSheet";
+import { TranslationPicker } from "@/components/TranslationPicker";
+import { VersePeek } from "@/components/VersePeek";
+import { loadChapterText, type ChapterData } from "@/lib/bibleText";
+import { getTranslation } from "@/lib/translations";
+
 
 const BOOKS = [
   "Genesis", "Exodus", "Leviticus", "Numbers", "Deuteronomy",
