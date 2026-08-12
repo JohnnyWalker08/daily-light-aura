@@ -18,78 +18,60 @@ const USFM: Record<string, string> = {
   "3 John": "3JN", "Jude": "JUD", "Revelation": "REV",
 };
 
+const YV = "https://api.youversion.com";
 const KEY = Deno.env.get("YOUVERSION_API_KEY") || "";
 
-const HEADER_SETS: Array<[string, Record<string, string>]> = [
-  ["yvp", { "x-yvp-app-key": KEY, Accept: "application/json" }],
-  ["yvp-bearer", { "x-yvp-app-key": KEY, Authorization: `Bearer ${KEY}`, Accept: "application/json" }],
-];
+function yvFetch(path: string) {
+  return fetch(`${YV}${path}`, {
+    headers: { "x-yvp-app-key": KEY, Accept: "application/json" },
+  });
+}
 
+function decodeEntities(s: string) {
+  return s
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&#(\d+);/g, (_, d) => String.fromCharCode(Number(d)));
+}
 
-const YV = "https://api.youversion.com";
-
-const URL_BUILDERS: Array<[string, (v: string, usfm: string) => string]> = [
-  ["versions", () => `${YV}/v1/versions`],
-  ["bibles", () => `${YV}/v1/bibles`],
-  ["bible-versions", () => `${YV}/v1/bible/versions`],
-  ["chapter-q", (v, u) => `${YV}/v1/bible/chapter?version=${v}&reference=${u}`],
-  ["verse-q", (v, u) => `${YV}/v1/bible/verse?version=${v}&reference=${u}`],
-  ["ver-chapters", (v, u) => `${YV}/v1/versions/${v}/chapters/${u}`],
-  ["short-path", (v, u) => `${YV}/v1/bible/${v}/${u}`],
-  ["chapters-q", (v, u) => `${YV}/v1/chapters?version_id=${v}&usfm=${u}`],
-  ["passages", (v, u) => `${YV}/v1/passages?version_id=${v}&usfm=${u}`],
-];
-
-
-function stripHtml(input: string) {
-  return input
-    .replace(/<[^>]*>/g, " ")
+function clean(html: string) {
+  return decodeEntities(html.replace(/<[^>]*>/g, " "))
     .replace(/\s+/g, " ")
     .trim();
 }
 
-/** Try to normalise whatever shape the provider returns into {reference, verses[]} */
-function normalise(payload: any, book: string, chapter: number) {
+/**
+ * YouVersion HTML marks each verse with <span class="yv-v" v="N"></span>
+ * followed by an optional <span class="yv-vlbl">N</span> label and the text.
+ */
+function parseChapterHtml(html: string) {
   const verses: Array<{ verse: number; text: string }> = [];
+  const marker = /<span[^>]*class="[^"]*yv-v"[^>]*\sv="(\d+)"[^>]*>\s*<\/span>/g;
 
-  const pushVerse = (n: any, t: any) => {
-    const num = Number(n);
-    const text = stripHtml(String(t ?? ""));
-    if (Number.isFinite(num) && num > 0 && text) verses.push({ verse: num, text });
-  };
-
-  const arr =
-    payload?.verses ||
-    payload?.data?.verses ||
-    payload?.content?.verses ||
-    (Array.isArray(payload?.data) ? payload.data : null);
-
-  if (Array.isArray(arr)) {
-    for (const v of arr) {
-      pushVerse(v.verse ?? v.number ?? v.verse_number ?? v.usfm?.split(".").pop(), v.text ?? v.content ?? v.value);
-    }
+  const hits: Array<{ num: number; start: number }> = [];
+  let m: RegExpExecArray | null;
+  while ((m = marker.exec(html))) {
+    hits.push({ num: Number(m[1]), start: m.index + m[0].length });
   }
 
-  // HTML/plain content blob: split on verse markers
-  if (!verses.length) {
-    const html = payload?.data?.content ?? payload?.content ?? payload?.chapter?.content;
-    if (typeof html === "string" && html.length) {
-      const plain = stripHtml(html);
-      const parts = plain.split(/(?=\b\d{1,3}\s)/g);
-      let n = 0;
-      for (const p of parts) {
-        const m = p.match(/^(\d{1,3})\s+(.*)$/s);
-        if (m) {
-          n = Number(m[1]);
-          pushVerse(n, m[2]);
-        }
-      }
-    }
+  for (let i = 0; i < hits.length; i++) {
+    const end = i + 1 < hits.length ? html.indexOf("<span", hits[i + 1].start - 200) : html.length;
+    const slice = html.slice(hits[i].start, i + 1 < hits.length ? hits[i + 1].start - 0 : html.length);
+    // Drop the visible verse-number label so it does not duplicate in the text
+    const text = clean(slice.replace(/<span[^>]*class="[^"]*yv-vlbl[^"]*"[^>]*>[\s\S]*?<\/span>/g, " "));
+    if (!text) continue;
+    const existing = verses.find((v) => v.verse === hits[i].num);
+    if (existing) existing.text = `${existing.text} ${text}`.trim();
+    else verses.push({ verse: hits[i].num, text });
+    void end;
   }
 
   verses.sort((a, b) => a.verse - b.verse);
-  if (!verses.length) return null;
-  return { reference: `${book} ${chapter}`, verses };
+  return verses;
 }
 
 Deno.serve(async (req) => {
@@ -106,56 +88,53 @@ Deno.serve(async (req) => {
   try {
     const url = new URL(req.url);
     const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
-    const book = String(body.book ?? url.searchParams.get("book") ?? "John");
-    const chapter = Number(body.chapter ?? url.searchParams.get("chapter") ?? 1);
-    const version = String(body.version ?? url.searchParams.get("version") ?? "111");
-    const probe = url.searchParams.get("probe") === "1" || body.probe === true;
+    const action = String(body.action ?? url.searchParams.get("action") ?? "chapter");
 
-    const rawPath = url.searchParams.get("raw") || body.raw;
-    if (rawPath) {
-      const res = await fetch(`${YV}${rawPath}`, {
-        headers: { "x-yvp-app-key": KEY, Accept: "application/json" },
-      });
-      const text = await res.text();
-      return json({ status: res.status, body: text.slice(0, 4000) });
+    if (action === "versions") {
+      const res = await yvFetch(`/v1/bibles?language_ranges[]=eng`);
+      if (!res.ok) return json({ error: "versions_unavailable", status: res.status }, 502);
+      const payload = await res.json();
+      const versions = (payload?.data || []).map((v: any) => ({
+        id: String(v.id),
+        abbrev: v.localized_abbreviation || v.abbreviation,
+        title: v.localized_title || v.title,
+      }));
+      return json({ versions });
     }
 
+    const version = String(body.version ?? url.searchParams.get("version") ?? "111");
+    const book = String(body.book ?? url.searchParams.get("book") ?? "John");
+    const chapter = Number(body.chapter ?? url.searchParams.get("chapter") ?? 1);
+    const verse = body.verse ?? url.searchParams.get("verse");
 
     const code = USFM[book];
     if (!code) return json({ error: "unknown_book", book }, 400);
-    const usfm = `${code}.${chapter}`;
 
-    if (probe) {
-      const results: any[] = [];
-      for (const [uName, build] of URL_BUILDERS) {
-        for (const [hName, headers] of HEADER_SETS) {
-          try {
-            const res = await fetch(build(version, usfm), { headers });
-            const text = (await res.text()).slice(0, 200);
-            results.push({ url: uName, headers: hName, status: res.status, sample: text });
-          } catch (e) {
-            results.push({ url: uName, headers: hName, error: String((e as Error).message) });
-          }
-        }
-      }
-      return json({ probe: results });
+    // Single-verse lookup (used by the "compare this verse" peek)
+    if (verse) {
+      const res = await yvFetch(`/v1/bibles/${version}/passages/${code}.${chapter}.${Number(verse)}`);
+      if (!res.ok) return json({ error: "unavailable", status: res.status }, 502);
+      const payload = await res.json();
+      const text = clean(String(payload?.content || ""));
+      if (!text) return json({ error: "empty" }, 502);
+      return json({
+        reference: payload?.reference || `${book} ${chapter}:${verse}`,
+        verses: [{ verse: Number(verse), text }],
+        translation: version,
+      });
     }
 
-    for (const [, build] of URL_BUILDERS) {
-      for (const [, headers] of HEADER_SETS) {
-        try {
-          const res = await fetch(build(version, usfm), { headers });
-          if (!res.ok) continue;
-          const payload = await res.json().catch(() => null);
-          const data = payload && normalise(payload, book, chapter);
-          if (data) return json({ ...data, translation: version });
-        } catch {
-          // try next combination
-        }
-      }
-    }
+    const res = await yvFetch(`/v1/bibles/${version}/passages/${code}.${chapter}?format=html`);
+    if (!res.ok) return json({ error: "unavailable", status: res.status }, 502);
+    const payload = await res.json();
+    const verses = parseChapterHtml(String(payload?.content || ""));
+    if (!verses.length) return json({ error: "empty" }, 502);
 
-    return json({ error: "unavailable" }, 502);
+    return json({
+      reference: payload?.reference || `${book} ${chapter}`,
+      verses,
+      translation: version,
+    });
   } catch (error) {
     return json({ error: String((error as Error)?.message || error) }, 500);
   }
