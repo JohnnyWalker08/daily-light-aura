@@ -645,11 +645,37 @@ export default function Bible() {
           />
         )}
 
+        <TranslationPicker
+          open={showTranslationPicker}
+          onOpenChange={setShowTranslationPicker}
+          value={translation}
+          onSelect={changeTranslation}
+          excludeId={compareTranslation ?? undefined}
+        />
+
+        <TranslationPicker
+          open={showComparePicker}
+          onOpenChange={setShowComparePicker}
+          value={compareTranslation ?? ""}
+          onSelect={setCompareTranslation}
+          title="Compare with…"
+          excludeId={translation}
+        />
+
+        <VersePeek
+          book={book}
+          chapter={parseInt(chapter)}
+          verse={peekVerse}
+          currentTranslation={translation}
+          onClose={() => setPeekVerse(null)}
+        />
+
         {/* Reader Settings Panel */}
         <ReaderSettingsPanel 
           isOpen={showSettingsPanel} 
           onClose={() => setShowSettingsPanel(false)} 
         />
+
       </div>
     </div>
   );
