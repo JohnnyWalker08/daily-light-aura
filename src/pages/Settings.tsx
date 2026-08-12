@@ -12,22 +12,22 @@ import {
   type ReaderFontFamily,
   type ReaderFontSize,
 } from "@/lib/settingsStorage";
+import { TranslationPicker } from "@/components/TranslationPicker";
+import { getTranslation } from "@/lib/translations";
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState(() => getUserSettings());
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   useEffect(() => {
     setSettings(getUserSettings());
   }, []);
 
   const translationLabel = useMemo(() => {
-    const map: Record<BibleTranslation, string> = {
-      kjv: "KJV (Default)",
-      web: "WEB",
-      asv: "ASV",
-    };
-    return map[settings.translation];
+    const meta = getTranslation(settings.translation);
+    return `${meta.abbrev} — ${meta.name}`;
   }, [settings.translation]);
+
 
   const update = (patch: Partial<typeof settings>) => {
     const next = { ...settings, ...patch };
