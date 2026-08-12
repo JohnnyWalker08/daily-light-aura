@@ -407,9 +407,20 @@ export default function Bible() {
             </div>
           ) : verses ? (
             <div>
-              <h2 className="text-2xl sm:text-3xl font-display font-bold text-foreground mb-8">
-                {verses.reference}
-              </h2>
+              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 mb-8">
+                <h2 className="text-2xl sm:text-3xl font-display font-bold text-foreground">
+                  {verses.reference}
+                </h2>
+                <span className="text-xs font-semibold px-2 py-1 rounded-lg bg-primary/10 text-primary">
+                  {getTranslation(translation).abbrev}
+                </span>
+                {compareTranslation && (
+                  <span className="text-xs font-semibold px-2 py-1 rounded-lg bg-muted text-muted-foreground">
+                    vs {getTranslation(compareTranslation).abbrev}
+                    {compareLoading ? " · loading…" : ""}
+                  </span>
+                )}
+              </div>
               
               {/* Improved verse layout - full width, flowing text */}
               <div 
@@ -425,26 +436,51 @@ export default function Bible() {
                   const highlightBg = highlight 
                     ? HIGHLIGHT_COLORS.find(c => c.color === highlight.color)?.bg 
                     : '';
+                  const compareText = compareTranslation
+                    ? compareVerses?.verses.find((v) => v.verse === verse.verse)?.text
+                    : null;
                   
                   return (
                     <div 
                       key={verse.verse} 
                       className={`group relative rounded-lg transition-colors ${highlightBg}`}
                     >
-                      <div 
-                        className="cursor-pointer py-1"
-                        onClick={() => handleVerseClick(verse.verse)}
-                      >
-                        <span className="text-primary font-bold mr-2 align-super" style={{ fontSize: "0.85em" }}>
-                          {verse.verse}
-                        </span>
-                        <span className="text-foreground leading-relaxed">
-                          {verse.text}
-                        </span>
+                      <div className={compareTranslation ? "grid sm:grid-cols-2 gap-x-6 gap-y-2" : ""}>
+                        <div 
+                          className="cursor-pointer py-1"
+                          onClick={() => handleVerseClick(verse.verse)}
+                        >
+                          <span className="text-primary font-bold mr-2 align-super" style={{ fontSize: "0.85em" }}>
+                            {verse.verse}
+                          </span>
+                          <span className="text-foreground leading-relaxed">
+                            {verse.text}
+                          </span>
+                        </div>
+
+                        {compareTranslation && (
+                          <div className="py-1 sm:border-l sm:border-border/50 sm:pl-6">
+                            <span className="text-muted-foreground font-bold mr-2 align-super" style={{ fontSize: "0.85em" }}>
+                              {verse.verse}
+                            </span>
+                            <span className="text-muted-foreground leading-relaxed">
+                              {compareText ?? (compareLoading ? "…" : "—")}
+                            </span>
+                          </div>
+                        )}
                       </div>
                       
                       {/* Quick actions on hover */}
-                      <div className="absolute right-0 top-0 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-background/90 rounded-lg p-1">
+                      <div className="absolute right-0 top-0 flex gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity bg-background/90 rounded-lg p-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          title="See this verse in every version"
+                          onClick={(e) => { e.stopPropagation(); setPeekVerse(verse.verse); }}
+                        >
+                          <Languages className="h-4 w-4" />
+                        </Button>
                         <Button 
                           variant="ghost" 
                           size="icon" 
@@ -470,6 +506,7 @@ export default function Bible() {
                           <Bookmark className="h-4 w-4" />
                         </Button>
                       </div>
+
                       
                       {hasNoteForVerse(verse.verse) && (
                         <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary/50 rounded-l-lg" />
