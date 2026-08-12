@@ -111,6 +111,16 @@ Deno.serve(async (req) => {
     const version = String(body.version ?? url.searchParams.get("version") ?? "111");
     const probe = url.searchParams.get("probe") === "1" || body.probe === true;
 
+    const rawPath = url.searchParams.get("raw") || body.raw;
+    if (rawPath) {
+      const res = await fetch(`${YV}${rawPath}`, {
+        headers: { "x-yvp-app-key": KEY, Accept: "application/json" },
+      });
+      const text = await res.text();
+      return json({ status: res.status, body: text.slice(0, 4000) });
+    }
+
+
     const code = USFM[book];
     if (!code) return json({ error: "unknown_book", book }, 400);
     const usfm = `${code}.${chapter}`;
