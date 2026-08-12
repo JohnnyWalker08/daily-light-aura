@@ -1,4 +1,4 @@
-export type BibleTranslation = "kjv" | "web" | "asv";
+export type BibleTranslation = string;
 
 export type ReaderFontSize = "default" | "large" | "xlarge";
 export type ReaderFontFamily = "default" | "serif" | "lora" | "merriweather" | "literata" | "source-serif" | "crimson";
