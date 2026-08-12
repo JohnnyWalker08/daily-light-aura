@@ -26,12 +26,20 @@ const HEADER_SETS: Array<[string, Record<string, string>]> = [
 ];
 
 
+const YV = "https://api.youversion.com";
+
 const URL_BUILDERS: Array<[string, (v: string, usfm: string) => string]> = [
-  ["v1-chapters", (v, u) => `https://api.youversion.com/v1/bibles/${v}/chapters/${u}`],
-  ["v1-chapter-q", (v, u) => `https://api.youversion.com/v1/bible/chapter?version_id=${v}&reference=${u}`],
-  ["v1-verses", (v, u) => `https://api.youversion.com/v1/bibles/${v}/verses/${u}`],
-  ["scripture-chapters", (v, u) => `https://api.scripture.api.bible/v1/bibles/${v}/chapters/${u}`],
+  ["versions", () => `${YV}/v1/versions`],
+  ["bibles", () => `${YV}/v1/bibles`],
+  ["bible-versions", () => `${YV}/v1/bible/versions`],
+  ["chapter-q", (v, u) => `${YV}/v1/bible/chapter?version=${v}&reference=${u}`],
+  ["verse-q", (v, u) => `${YV}/v1/bible/verse?version=${v}&reference=${u}`],
+  ["ver-chapters", (v, u) => `${YV}/v1/versions/${v}/chapters/${u}`],
+  ["short-path", (v, u) => `${YV}/v1/bible/${v}/${u}`],
+  ["chapters-q", (v, u) => `${YV}/v1/chapters?version_id=${v}&usfm=${u}`],
+  ["passages", (v, u) => `${YV}/v1/passages?version_id=${v}&usfm=${u}`],
 ];
+
 
 function stripHtml(input: string) {
   return input
