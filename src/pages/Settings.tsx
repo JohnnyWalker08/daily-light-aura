@@ -135,20 +135,17 @@ export default function SettingsPage() {
 
           <div className="grid gap-2">
             <p className="text-sm font-medium">Current: {translationLabel}</p>
-            <Select
-              value={settings.translation}
-              onValueChange={(v) => update({ translation: v as BibleTranslation })}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="kjv">KJV</SelectItem>
-                <SelectItem value="web">WEB</SelectItem>
-                <SelectItem value="asv">ASV</SelectItem>
-              </SelectContent>
-            </Select>
+            <Button variant="outline" onClick={() => setPickerOpen(true)} className="justify-start">
+              Browse all versions
+            </Button>
           </div>
+          <TranslationPicker
+            open={pickerOpen}
+            onOpenChange={setPickerOpen}
+            value={settings.translation}
+            onSelect={(id) => update({ translation: id })}
+          />
+
         </Card>
 
         <div className="flex gap-2">
