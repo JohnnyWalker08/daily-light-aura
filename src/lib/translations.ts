@@ -15,15 +15,19 @@ export interface TranslationMeta {
   providerCode: string;
   group: "Popular" | "Classic" | "Easy reading" | "Study";
   blurb: string;
+  /** Direct publisher API that serves this version when the reader connects their own key. */
+  direct?: "esv" | "nlt";
 }
+
+import type { ProviderKeys } from "@/lib/licenseKeys";
 
 export const TRANSLATIONS: TranslationMeta[] = [
   // --- Popular modern ------------------------------------------------------
   { id: "niv", abbrev: "NIV", name: "New International Version", provider: "youversion", providerCode: "111", group: "Popular", blurb: "The most widely read modern translation." },
   { id: "nivuk", abbrev: "NIVUK", name: "New International Version (Anglicised)", provider: "youversion", providerCode: "113", group: "Popular", blurb: "NIV in British English." },
   { id: "nkjv", abbrev: "NKJV", name: "New King James Version", provider: "youversion", providerCode: "114", group: "Popular", blurb: "KJV beauty in modern, readable English." },
-  { id: "nlt", abbrev: "NLT", name: "New Living Translation", provider: "youversion", providerCode: "116", group: "Popular", blurb: "Warm, natural English — easy to read and feel." },
-  { id: "esv", abbrev: "ESV", name: "English Standard Version", provider: "youversion", providerCode: "59", group: "Popular", blurb: "Word-for-word accuracy, modern readability." },
+  { id: "nlt", abbrev: "NLT", name: "New Living Translation", provider: "youversion", providerCode: "116", group: "Popular", blurb: "Warm, natural English — easy to read and feel.", direct: "nlt" },
+  { id: "esv", abbrev: "ESV", name: "English Standard Version", provider: "youversion", providerCode: "59", group: "Popular", blurb: "Word-for-word accuracy, modern readability.", direct: "esv" },
   { id: "gnt", abbrev: "GNT", name: "Good News Translation", provider: "youversion", providerCode: "68", group: "Popular", blurb: "Clear, everyday language for all ages." },
   { id: "csb", abbrev: "CSB", name: "Christian Standard Bible", provider: "youversion", providerCode: "1713", group: "Popular", blurb: "Balance of accuracy and readability." },
   { id: "msg", abbrev: "MSG", name: "The Message", provider: "youversion", providerCode: "97", group: "Popular", blurb: "Paraphrase in vivid contemporary idiom." },
@@ -67,4 +71,43 @@ export function getTranslation(id: string): TranslationMeta {
 
 export function translationLabel(id: string): string {
   return getTranslation(id).abbrev;
+}
+
+// --- Source resolution -------------------------------------------------------
+// Given the reader's connected keys, decide which backend actually serves a
+// version right now: their own publisher key first, then API.Bible (if they
+// pasted a Bible id for it), then the shared YouVersion proxy, then the open
+// bible-api.com endpoint for public-domain texts.
+
+export type ResolvedSource =
+  | { kind: "bible-api"; code: string }
+  | { kind: "proxy"; provider: "youversion" | "esv" | "nlt" | "apibible"; code: string };
+
+export function resolveSource(
+  id: string,
+  keys: ProviderKeys,
+  apiBibleIds: Record<string, string> = {}
+): ResolvedSource | null {
+  const meta = getTranslation(id);
+
+  if (meta.direct && keys[meta.direct]) return { kind: "proxy", provider: meta.direct, code: meta.abbrev };
+  if (keys.apibible && apiBibleIds[meta.id]) {
+    return { kind: "proxy", provider: "apibible", code: apiBibleIds[meta.id] };
+  }
+  if (meta.provider === "bible-api") return { kind: "bible-api", code: meta.providerCode };
+  if (keys.youversion || true) return { kind: "proxy", provider: "youversion", code: meta.providerCode };
+  return null;
+}
+
+/** Versions the reader has personally unlocked with their own keys. */
+export function keyUnlockedTranslationIds(
+  keys: ProviderKeys,
+  apiBibleIds: Record<string, string> = {}
+): Set<string> {
+  const ids = new Set<string>();
+  for (const t of TRANSLATIONS) {
+    if (t.direct && keys[t.direct]) ids.add(t.id);
+    if (keys.apibible && apiBibleIds[t.id]) ids.add(t.id);
+  }
+  return ids;
 }
