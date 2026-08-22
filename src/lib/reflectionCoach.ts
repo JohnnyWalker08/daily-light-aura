@@ -7,7 +7,8 @@ export type CoachMode =
   | "walkthrough"
   | "identity"
   | "weary"
-  | "recap";
+  | "recap"
+  | "related";
 
 export interface CoachPayload {
   book?: string;
@@ -17,6 +18,8 @@ export interface CoachPayload {
   answer?: string;
   feeling?: string;
   todaySummary?: string;
+  verseRef?: string;
+  verseText?: string;
 }
 
 const ENDPOINT = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/reflection-coach`;

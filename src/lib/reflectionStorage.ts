@@ -9,6 +9,8 @@ export interface Reflection {
   question: string;
   understood: string;
   applied: string;
+  /** Version the chapter was read in. */
+  translation?: string;
   createdAt: string; // ISO
 }
 
@@ -18,6 +20,7 @@ export interface IdentityCard {
   reference: string;
   book: string;
   chapter: number;
+  translation?: string;
   createdAt: string;
 }
 

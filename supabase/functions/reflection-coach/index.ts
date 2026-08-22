@@ -1,6 +1,6 @@
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors'
 
-type Mode = "question" | "nudge" | "context" | "walkthrough" | "identity" | "weary" | "recap";
+type Mode = "question" | "nudge" | "context" | "walkthrough" | "identity" | "weary" | "recap" | "related";
 
 const BASE_RULES = `You are a warm, Christ-centred reading companion inside a KJV Bible app.
 Non-negotiable rules:
@@ -12,7 +12,7 @@ Non-negotiable rules:
 - Short. Mobile screen. Plain text, no markdown headings, no bullet symbols unless asked.`;
 
 function buildPrompt(mode: Mode, payload: Record<string, any>) {
-  const { book, chapter, chapterText, answer, question, feeling, todaySummary } = payload;
+  const { book, chapter, chapterText, answer, question, feeling, todaySummary, verseRef, verseText } = payload;
   const passage = chapterText ? `\n\nPassage (${book} ${chapter}, KJV):\n${chapterText}` : "";
 
   switch (mode) {
@@ -65,6 +65,17 @@ Task: Meet them where they are. Give:
 4. One line of God's steady love toward them right now.
 No striving, no tasks, no guilt, no mention of streaks or progress. Under 130 words.`;
 
+    case "related":
+      return `${BASE_RULES}
+
+The reader is searching Scripture and is looking at this verse:
+${verseRef} — "${verseText}"
+
+Task: Show them where this thread runs through the rest of the Bible. Give exactly three related passages:
+For each: the KJV reference, then the verse (or the key clause) quoted accurately, then one short line on how it connects to the verse above.
+Then one closing question inviting them to see the thread for themselves.
+No markdown headings. Under 160 words.`;
+
     case "recap":
       return `${BASE_RULES}
 
@@ -87,7 +98,7 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json();
     const mode = body?.mode as Mode;
-    const validModes: Mode[] = ["question", "nudge", "context", "walkthrough", "identity", "weary", "recap"];
+    const validModes: Mode[] = ["question", "nudge", "context", "walkthrough", "identity", "weary", "recap", "related"];
     if (!mode || !validModes.includes(mode)) {
       return new Response(JSON.stringify({ error: "Invalid mode" }), {
         status: 400,
