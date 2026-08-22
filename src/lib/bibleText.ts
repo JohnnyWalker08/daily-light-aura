@@ -1,9 +1,17 @@
 // Multi-translation chapter loading.
 // Priority for every request: IndexedDB cache -> our own database (KJV seed)
-// -> provider (bible-api.com for public domain, YouVersion proxy for licensed).
+// -> the reader's own publisher key (ESV / NLT / API.Bible) -> shared
+// YouVersion proxy -> bible-api.com for public domain texts.
 import { supabase } from "@/integrations/supabase/client";
 import { getChapter, saveChapter } from "@/lib/offlineBible";
-import { DEFAULT_TRANSLATION_ID, getTranslation, TRANSLATIONS } from "@/lib/translations";
+import { getApiBibleIds, getProviderKeys } from "@/lib/licenseKeys";
+import {
+  DEFAULT_TRANSLATION_ID,
+  getTranslation,
+  keyUnlockedTranslationIds,
+  resolveSource,
+  TRANSLATIONS,
+} from "@/lib/translations";
 
 export interface ChapterVerse {
   verse: number;
@@ -27,7 +35,8 @@ export function isValidChapterData(data: any): data is ChapterData {
 
 const FUNCTIONS_BASE = `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1`;
 
-async function fetchFromYouVersion(
+async function fetchFromProxy(
+  provider: string,
   version: string,
   book: string,
   chapter: number,
@@ -36,7 +45,7 @@ async function fetchFromYouVersion(
   const res = await fetch(`${FUNCTIONS_BASE}/bible-text`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ version, book, chapter, verse }),
+    body: JSON.stringify({ provider, version, book, chapter, verse, keys: getProviderKeys() }),
   });
   if (!res.ok) return null;
   const data = await res.json();
@@ -78,11 +87,17 @@ export async function loadChapterText(
     }
   }
 
-  // 3. Provider
-  const fetched =
-    meta.provider === "youversion"
-      ? await fetchFromYouVersion(meta.providerCode, book, chapter)
-      : await fetchFromBibleApi(meta.providerCode, book, chapter);
+  // 3. Provider (reader's own key first, then shared proxy / open API)
+  const source = resolveSource(meta.id, getProviderKeys(), getApiBibleIds());
+  let fetched: ChapterData | null = null;
+  if (source?.kind === "proxy") {
+    fetched = await fetchFromProxy(source.provider, source.code, book, chapter);
+    if (!fetched && meta.provider === "bible-api") {
+      fetched = await fetchFromBibleApi(meta.providerCode, book, chapter);
+    }
+  } else if (source?.kind === "bible-api") {
+    fetched = await fetchFromBibleApi(source.code, book, chapter);
+  }
 
   if (fetched) {
     await saveChapter(book, chapter, fetched, meta.id).catch(() => {});
@@ -107,9 +122,11 @@ export async function loadVerseText(
     if (hit) return hit.text;
   }
 
-  if (meta.provider === "youversion") {
-    const data = await fetchFromYouVersion(meta.providerCode, book, chapter, verse);
-    return data?.verses?.[0]?.text ?? null;
+  const source = resolveSource(meta.id, getProviderKeys(), getApiBibleIds());
+  if (source?.kind === "proxy") {
+    const data = await fetchFromProxy(source.provider, source.code, book, chapter, verse);
+    const hit = data?.verses?.find((v) => v.verse === verse) ?? data?.verses?.[0];
+    if (hit) return hit.text;
   }
 
   const chapterData = await loadChapterText(book, chapter, meta.id);
@@ -123,9 +140,15 @@ const AVAILABILITY_TTL = 1000 * 60 * 60 * 24;
 
 let availabilityPromise: Promise<Set<string>> | null = null;
 
+export function clearAvailabilityCache() {
+  localStorage.removeItem(AVAILABILITY_KEY);
+  availabilityPromise = null;
+}
+
 /** Ids of translations that can actually be read right now. */
 export async function getAvailableTranslationIds(): Promise<Set<string>> {
   const always = new Set(TRANSLATIONS.filter((t) => t.provider === "bible-api").map((t) => t.id));
+  for (const id of keyUnlockedTranslationIds(getProviderKeys(), getApiBibleIds())) always.add(id);
 
   try {
     const raw = localStorage.getItem(AVAILABILITY_KEY);
@@ -145,7 +168,7 @@ export async function getAvailableTranslationIds(): Promise<Set<string>> {
         const res = await fetch(`${FUNCTIONS_BASE}/bible-text`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "versions" }),
+          body: JSON.stringify({ action: "versions", keys: getProviderKeys() }),
         });
         if (!res.ok) return always;
         const data = await res.json();
