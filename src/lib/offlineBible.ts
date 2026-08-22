@@ -191,3 +191,124 @@ export async function clearOfflineData() {
 }
 
 export { BOOK_CHAPTERS };
+
+// --- Per-translation offline packs ------------------------------------------
+// Readers choose which versions (and how much of the Bible) to keep on device.
+
+export type PackScope = "whole" | "nt" | "gospels" | "psalms";
+
+const NT_BOOKS = [
+  "Matthew", "Mark", "Luke", "John", "Acts", "Romans", "1 Corinthians", "2 Corinthians",
+  "Galatians", "Ephesians", "Philippians", "Colossians", "1 Thessalonians", "2 Thessalonians",
+  "1 Timothy", "2 Timothy", "Titus", "Philemon", "Hebrews", "James", "1 Peter", "2 Peter",
+  "1 John", "2 John", "3 John", "Jude", "Revelation",
+];
+
+export const PACK_SCOPES: { id: PackScope; label: string; description: string }[] = [
+  { id: "whole", label: "Whole Bible", description: "All 66 books · 1,189 chapters" },
+  { id: "nt", label: "New Testament", description: "Matthew – Revelation · 260 chapters" },
+  { id: "gospels", label: "Gospels + Acts", description: "Matthew – Acts · 117 chapters" },
+  { id: "psalms", label: "Psalms & Proverbs", description: "Daily devotional core · 181 chapters" },
+];
+
+export function booksForScope(scope: PackScope): string[] {
+  switch (scope) {
+    case "nt":
+      return NT_BOOKS;
+    case "gospels":
+      return ["Matthew", "Mark", "Luke", "John", "Acts"];
+    case "psalms":
+      return ["Psalms", "Proverbs"];
+    default:
+      return Object.keys(BOOK_CHAPTERS);
+  }
+}
+
+export function chapterCountForScope(scope: PackScope): number {
+  return booksForScope(scope).reduce((sum, book) => sum + (BOOK_CHAPTERS[book] || 0), 0);
+}
+
+function allKeys(): Promise<string[]> {
+  return openDB().then(
+    (db) =>
+      new Promise<string[]>((resolve) => {
+        const tx = db.transaction([STORE_NAME], "readonly");
+        const req = tx.objectStore(STORE_NAME).getAllKeys();
+        req.onsuccess = () => resolve((req.result as string[]).map(String));
+        req.onerror = () => resolve([]);
+      })
+  );
+}
+
+/** How many chapters are cached per translation id. */
+export async function getPackStats(): Promise<Record<string, number>> {
+  const keys = await allKeys();
+  const stats: Record<string, number> = {};
+  for (const key of keys) {
+    const at = key.lastIndexOf("@");
+    const translation = at > -1 ? key.slice(at + 1) : "kjv";
+    stats[translation] = (stats[translation] || 0) + 1;
+  }
+  return stats;
+}
+
+export async function deletePack(translation: string) {
+  const db = await openDB();
+  const keys = await allKeys();
+  const targets = keys.filter((key) => {
+    const at = key.lastIndexOf("@");
+    return (at > -1 ? key.slice(at + 1) : "kjv") === translation;
+  });
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction([STORE_NAME], "readwrite");
+    const store = tx.objectStore(STORE_NAME);
+    targets.forEach((key) => store.delete(key));
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+/**
+ * Download a translation pack. Uses the shared chapter loader so every source
+ * (seeded DB, licensed proxy, open API) works, and skips chapters already cached.
+ */
+export async function downloadTranslationPack(
+  translation: string,
+  scope: PackScope,
+  onProgress?: (current: number, total: number) => void,
+  shouldStop?: () => boolean
+): Promise<{ saved: number; failed: number; stopped: boolean }> {
+  const { loadChapterText } = await import("@/lib/bibleText");
+  const books = booksForScope(scope);
+  const total = chapterCountForScope(scope);
+
+  let done = 0;
+  let saved = 0;
+  let failed = 0;
+
+  for (const book of books) {
+    for (let ch = 1; ch <= (BOOK_CHAPTERS[book] || 0); ch++) {
+      if (shouldStop?.()) return { saved, failed, stopped: true };
+
+      const existing = await getChapter(book, ch, translation).catch(() => null);
+      if (isValidChapterData(existing)) {
+        done++;
+        onProgress?.(done, total);
+        continue;
+      }
+
+      try {
+        const data = await loadChapterText(book, ch, translation);
+        if (isValidChapterData(data)) saved++;
+        else failed++;
+      } catch {
+        failed++;
+      }
+
+      done++;
+      onProgress?.(done, total);
+    }
+  }
+
+  return { saved, failed, stopped: false };
+}
