@@ -95,8 +95,7 @@ export function resolveSource(
     return { kind: "proxy", provider: "apibible", code: apiBibleIds[meta.id] };
   }
   if (meta.provider === "bible-api") return { kind: "bible-api", code: meta.providerCode };
-  if (keys.youversion || true) return { kind: "proxy", provider: "youversion", code: meta.providerCode };
-  return null;
+  return { kind: "proxy", provider: "youversion", code: meta.providerCode };
 }
 
 /** Versions the reader has personally unlocked with their own keys. */
