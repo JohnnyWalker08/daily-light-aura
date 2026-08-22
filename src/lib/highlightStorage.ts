@@ -6,6 +6,8 @@ export interface VerseHighlight {
   chapter: number;
   verse: number;
   color: HighlightColor;
+  /** Version the verse was highlighted in. */
+  translation: string;
   createdAt: string;
 }
 
@@ -23,7 +25,14 @@ const HIGHLIGHTS_KEY = 'verse_highlights';
 
 export function getAllHighlights(): VerseHighlight[] {
   const stored = localStorage.getItem(HIGHLIGHTS_KEY);
-  return stored ? JSON.parse(stored) : [];
+  const parsed: VerseHighlight[] = stored ? JSON.parse(stored) : [];
+  // Highlights saved before multi-translation support were all KJV.
+  return parsed.map((h) => ({ ...h, translation: h.translation || "kjv" }));
+}
+
+/** Translation ids present in the highlight list, for filtering. */
+export function highlightTranslations(): string[] {
+  return Array.from(new Set(getAllHighlights().map((h) => h.translation)));
 }
 
 export function getHighlightsForChapter(book: string, chapter: number): VerseHighlight[] {
@@ -34,7 +43,13 @@ export function getHighlightForVerse(book: string, chapter: number, verse: numbe
   return getAllHighlights().find(h => h.book === book && h.chapter === chapter && h.verse === verse);
 }
 
-export function highlightVerse(book: string, chapter: number, verse: number, color: HighlightColor): VerseHighlight {
+export function highlightVerse(
+  book: string,
+  chapter: number,
+  verse: number,
+  color: HighlightColor,
+  translation = "kjv"
+): VerseHighlight {
   const highlights = getAllHighlights();
   const existingIndex = highlights.findIndex(h => h.book === book && h.chapter === chapter && h.verse === verse);
   
@@ -44,6 +59,7 @@ export function highlightVerse(book: string, chapter: number, verse: number, col
     chapter,
     verse,
     color,
+    translation,
     createdAt: existingIndex >= 0 ? highlights[existingIndex].createdAt : new Date().toISOString(),
   };
 
