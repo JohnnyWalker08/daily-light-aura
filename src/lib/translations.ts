@@ -66,7 +66,7 @@ export const TRANSLATION_GROUPS: Array<TranslationMeta["group"]> = [
 ];
 
 export function getTranslation(id: string): TranslationMeta {
-  return TRANSLATIONS.find((t) => t.id === id) || TRANSLATIONS.find((t) => t.id === DEFAULT_TRANSLATION_ID)!;
+  return TRANSLATIONS.find((t) => t.id === id) || TRANSLATIONS[0];
 }
 
 export function translationLabel(id: string): string {

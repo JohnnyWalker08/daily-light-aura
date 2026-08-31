@@ -22,6 +22,8 @@ import More from "./pages/More";
 import Settings from "./pages/Settings";
 import Insights from "./pages/Insights";
 import Weary from "./pages/Weary";
+import Licensing from "./pages/Licensing";
+import OfflinePacks from "./pages/OfflinePacks";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -57,6 +59,8 @@ const App = () => {
               <Route path="/settings" element={<Settings />} />
               <Route path="/insights" element={<Insights />} />
               <Route path="/weary" element={<Weary />} />
+              <Route path="/settings/licensing" element={<Licensing />} />
+              <Route path="/settings/offline-packs" element={<OfflinePacks />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="*" element={<NotFound />} />
             </Routes>

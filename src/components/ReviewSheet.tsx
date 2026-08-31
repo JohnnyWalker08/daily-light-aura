@@ -20,12 +20,13 @@ interface ReviewSheetProps {
   onClose: () => void;
   /** Called when the reader finishes or skips — marks the chapter read. */
   onComplete: () => void;
+  translation?: string;
 }
 
 const STEPS = ["Notice", "Understand", "Apply"];
 const HELP_LEVELS = ["nudge", "context", "walkthrough"] as const;
 
-export function ReviewSheet({ book, chapter, verses, onClose, onComplete }: ReviewSheetProps) {
+export function ReviewSheet({ book, chapter, verses, onClose, onComplete, translation = "kjv" }: ReviewSheetProps) {
   const draft = useRef(getDraft(book, chapter));
   const [step, setStep] = useState(draft.current?.step ?? 0);
   const [noticed, setNoticed] = useState(draft.current?.noticed ?? "");
@@ -90,7 +91,7 @@ export function ReviewSheet({ book, chapter, verses, onClose, onComplete }: Revi
 
   const finish = async () => {
     setSaving(true);
-    saveReflection({ book, chapter, noticed, question, understood, applied });
+    saveReflection({ book, chapter, translation, noticed, question, understood, applied });
     clearDraft();
 
     // Truth card from what was just read — best effort, never blocks saving.
@@ -106,7 +107,7 @@ export function ReviewSheet({ book, chapter, verses, onClose, onComplete }: Revi
       );
       const [line, ...rest] = text.trim().split("\n").filter(Boolean);
       if (line) {
-        saveIdentityCard({ text: line, reference: rest.join(" ").trim(), book, chapter });
+        saveIdentityCard({ text: line, reference: rest.join(" ").trim(), book, chapter, translation });
       }
       setStep(3);
     } catch {
