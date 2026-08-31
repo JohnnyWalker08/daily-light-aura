@@ -8,6 +8,8 @@ export interface VerseHighlight {
   color: HighlightColor;
   /** Version the verse was highlighted in. */
   translation: string;
+  /** Exact wording shown when the highlight was created. */
+  text?: string;
   createdAt: string;
 }
 
@@ -55,10 +57,13 @@ export function highlightVerse(
   chapter: number,
   verse: number,
   color: HighlightColor,
-  translation = "kjv"
+  translation = "kjv",
+  text?: string
 ): VerseHighlight {
   const highlights = getAllHighlights();
-  const existingIndex = highlights.findIndex(h => h.book === book && h.chapter === chapter && h.verse === verse);
+  const existingIndex = highlights.findIndex(
+    h => h.book === book && h.chapter === chapter && h.verse === verse && h.translation === translation
+  );
   
   const highlight: VerseHighlight = {
     id: existingIndex >= 0 ? highlights[existingIndex].id : `${Date.now()}-${Math.random().toString(36).slice(2)}`,
@@ -67,6 +72,7 @@ export function highlightVerse(
     verse,
     color,
     translation,
+    text,
     createdAt: existingIndex >= 0 ? highlights[existingIndex].createdAt : new Date().toISOString(),
   };
 

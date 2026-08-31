@@ -212,7 +212,8 @@ export default function Bible() {
 
   const handleHighlight = (color: HighlightColor) => {
     if (selectedVerse !== null) {
-      highlightVerse(book, parseInt(chapter), selectedVerse, color, translation);
+      const verseText = verses?.verses.find((verse) => verse.verse === selectedVerse)?.text;
+      highlightVerse(book, parseInt(chapter), selectedVerse, color, translation, verseText);
       loadHighlights();
       setShowHighlightPicker(false);
       setSelectedVerse(null);
