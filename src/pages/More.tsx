@@ -13,6 +13,8 @@ import {
   Heart,
   Sparkles,
   HeartHandshake,
+  CloudDownload,
+  KeyRound,
   LogIn,
   LogOut
 } from "lucide-react";
@@ -59,6 +61,8 @@ const More = () => {
         { icon: TrendingUp, label: "Progress", path: "/progress", description: "Track your reading" },
         { icon: Sparkles, label: "Insight Journal", path: "/insights", description: "What the Word is showing you" },
         { icon: HeartHandshake, label: "I'm weary today", path: "/weary", description: "Rest, comfort and God's love" },
+        { icon: KeyRound, label: "Translation licensing", path: "/settings/licensing", description: "Connect keys for more versions" },
+        { icon: CloudDownload, label: "Offline packs", path: "/settings/offline-packs", description: "Choose versions to read anywhere" },
         { icon: Heart, label: "Prayer", path: "/prayer", description: "Prayer journal" },
       ]
     }

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Type, BookOpen } from "lucide-react";
+import { ArrowLeft, Type, BookOpen, CloudDownload, KeyRound } from "lucide-react";
 import { Link } from "react-router-dom";
 import {
   DEFAULT_SETTINGS,
@@ -118,6 +118,40 @@ export default function SettingsPage() {
               </p>
             </div>
           </div>
+        </Card>
+
+        <Card className="glass-card p-5 mb-4">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+              <KeyRound className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-lg font-display font-semibold">More translations</h2>
+              <p className="text-sm text-muted-foreground">Connect your own keys for licensed Bible versions.</p>
+            </div>
+          </div>
+          <Link to="/settings/licensing">
+            <Button variant="outline" className="w-full justify-start">
+              <KeyRound className="h-4 w-4 mr-2" /> Manage licensing & keys
+            </Button>
+          </Link>
+        </Card>
+
+        <Card className="glass-card p-5 mb-4">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+              <CloudDownload className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-lg font-display font-semibold">Read offline</h2>
+              <p className="text-sm text-muted-foreground">Keep your chosen translations available without internet.</p>
+            </div>
+          </div>
+          <Link to="/settings/offline-packs">
+            <Button variant="outline" className="w-full justify-start">
+              <CloudDownload className="h-4 w-4 mr-2" /> Manage offline packs
+            </Button>
+          </Link>
         </Card>
 
         <Card className="glass-card p-6 mb-4">

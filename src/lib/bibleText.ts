@@ -82,8 +82,8 @@ export async function loadChapterText(
       .eq("chapter", chapter)
       .maybeSingle();
     if (isValidChapterData(row?.data)) {
-      await saveChapter(book, chapter, row!.data, meta.id).catch(() => {});
-      return row!.data as unknown as ChapterData;
+      await saveChapter(book, chapter, row.data, meta.id).catch(() => {});
+      return row.data as unknown as ChapterData;
     }
   }
 

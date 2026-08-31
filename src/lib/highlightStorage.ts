@@ -8,6 +8,8 @@ export interface VerseHighlight {
   color: HighlightColor;
   /** Version the verse was highlighted in. */
   translation: string;
+  /** Exact wording shown when the highlight was created. */
+  text?: string;
   createdAt: string;
 }
 
@@ -39,8 +41,15 @@ export function getHighlightsForChapter(book: string, chapter: number): VerseHig
   return getAllHighlights().filter(h => h.book === book && h.chapter === chapter);
 }
 
-export function getHighlightForVerse(book: string, chapter: number, verse: number): VerseHighlight | undefined {
-  return getAllHighlights().find(h => h.book === book && h.chapter === chapter && h.verse === verse);
+export function getHighlightForVerse(
+  book: string,
+  chapter: number,
+  verse: number,
+  translation = "kjv"
+): VerseHighlight | undefined {
+  return getAllHighlights().find(
+    h => h.book === book && h.chapter === chapter && h.verse === verse && h.translation === translation
+  );
 }
 
 export function highlightVerse(
@@ -48,10 +57,13 @@ export function highlightVerse(
   chapter: number,
   verse: number,
   color: HighlightColor,
-  translation = "kjv"
+  translation = "kjv",
+  text?: string
 ): VerseHighlight {
   const highlights = getAllHighlights();
-  const existingIndex = highlights.findIndex(h => h.book === book && h.chapter === chapter && h.verse === verse);
+  const existingIndex = highlights.findIndex(
+    h => h.book === book && h.chapter === chapter && h.verse === verse && h.translation === translation
+  );
   
   const highlight: VerseHighlight = {
     id: existingIndex >= 0 ? highlights[existingIndex].id : `${Date.now()}-${Math.random().toString(36).slice(2)}`,
@@ -60,6 +72,7 @@ export function highlightVerse(
     verse,
     color,
     translation,
+    text,
     createdAt: existingIndex >= 0 ? highlights[existingIndex].createdAt : new Date().toISOString(),
   };
 
@@ -73,9 +86,9 @@ export function highlightVerse(
   return highlight;
 }
 
-export function removeHighlight(book: string, chapter: number, verse: number): void {
+export function removeHighlight(book: string, chapter: number, verse: number, translation = "kjv"): void {
   const highlights = getAllHighlights().filter(
-    h => !(h.book === book && h.chapter === chapter && h.verse === verse)
+    h => !(h.book === book && h.chapter === chapter && h.verse === verse && h.translation === translation)
   );
   localStorage.setItem(HIGHLIGHTS_KEY, JSON.stringify(highlights));
 }

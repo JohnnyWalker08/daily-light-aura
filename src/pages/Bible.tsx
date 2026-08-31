@@ -37,6 +37,7 @@ import { TranslationPicker } from "@/components/TranslationPicker";
 import { VersePeek } from "@/components/VersePeek";
 import { loadChapterText, type ChapterData } from "@/lib/bibleText";
 import { getTranslation } from "@/lib/translations";
+import { addBookmark } from "@/lib/bookmarkStorage";
 
 
 const BOOKS = [
@@ -168,14 +169,12 @@ export default function Bible() {
   };
 
   const loadHighlights = () => {
-    setHighlights(getHighlightsForChapter(book, parseInt(chapter)));
+    setHighlights(getHighlightsForChapter(book, parseInt(chapter)).filter((h) => h.translation === translation));
   };
 
   const handleBookmark = (verseNum: number, text: string) => {
-    const bookmarks = JSON.parse(localStorage.getItem("bookmarks") || "[]");
-    bookmarks.push({ reference: `${book} ${chapter}:${verseNum}`, text });
-    localStorage.setItem("bookmarks", JSON.stringify(bookmarks));
-    toast.success("Verse bookmarked!");
+    addBookmark({ reference: `${book} ${chapter}:${verseNum}`, text, translation });
+    toast.success(`Verse bookmarked in ${getTranslation(translation).abbrev}!`);
   };
 
   const handleMarkRead = () => {
@@ -213,7 +212,8 @@ export default function Bible() {
 
   const handleHighlight = (color: HighlightColor) => {
     if (selectedVerse !== null) {
-      highlightVerse(book, parseInt(chapter), selectedVerse, color);
+      const verseText = verses?.verses.find((verse) => verse.verse === selectedVerse)?.text;
+      highlightVerse(book, parseInt(chapter), selectedVerse, color, translation, verseText);
       loadHighlights();
       setShowHighlightPicker(false);
       setSelectedVerse(null);
@@ -223,7 +223,7 @@ export default function Bible() {
 
   const handleRemoveHighlight = () => {
     if (selectedVerse !== null) {
-      removeHighlight(book, parseInt(chapter), selectedVerse);
+      removeHighlight(book, parseInt(chapter), selectedVerse, translation);
       loadHighlights();
       setShowHighlightPicker(false);
       setSelectedVerse(null);
@@ -642,6 +642,7 @@ export default function Bible() {
             verses={verses}
             onClose={() => setShowReview(false)}
             onComplete={completeChapter}
+            translation={translation}
           />
         )}
 
