@@ -169,7 +169,7 @@ export default function Bible() {
   };
 
   const loadHighlights = () => {
-    setHighlights(getHighlightsForChapter(book, parseInt(chapter)));
+    setHighlights(getHighlightsForChapter(book, parseInt(chapter)).filter((h) => h.translation === translation));
   };
 
   const handleBookmark = (verseNum: number, text: string) => {
@@ -641,6 +641,7 @@ export default function Bible() {
             verses={verses}
             onClose={() => setShowReview(false)}
             onComplete={completeChapter}
+            translation={translation}
           />
         )}
 

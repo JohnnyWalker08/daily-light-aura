@@ -39,8 +39,15 @@ export function getHighlightsForChapter(book: string, chapter: number): VerseHig
   return getAllHighlights().filter(h => h.book === book && h.chapter === chapter);
 }
 
-export function getHighlightForVerse(book: string, chapter: number, verse: number): VerseHighlight | undefined {
-  return getAllHighlights().find(h => h.book === book && h.chapter === chapter && h.verse === verse);
+export function getHighlightForVerse(
+  book: string,
+  chapter: number,
+  verse: number,
+  translation = "kjv"
+): VerseHighlight | undefined {
+  return getAllHighlights().find(
+    h => h.book === book && h.chapter === chapter && h.verse === verse && h.translation === translation
+  );
 }
 
 export function highlightVerse(
@@ -73,9 +80,9 @@ export function highlightVerse(
   return highlight;
 }
 
-export function removeHighlight(book: string, chapter: number, verse: number): void {
+export function removeHighlight(book: string, chapter: number, verse: number, translation = "kjv"): void {
   const highlights = getAllHighlights().filter(
-    h => !(h.book === book && h.chapter === chapter && h.verse === verse)
+    h => !(h.book === book && h.chapter === chapter && h.verse === verse && h.translation === translation)
   );
   localStorage.setItem(HIGHLIGHTS_KEY, JSON.stringify(highlights));
 }
