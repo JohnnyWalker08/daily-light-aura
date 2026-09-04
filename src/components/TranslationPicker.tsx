@@ -50,11 +50,8 @@ export function TranslationPicker({
     );
   }, [query]);
 
-  const isUnavailable = (t: TranslationMeta) =>
-    availability.status === "verified" && t.provider === "youversion" && !availability.ids.has(t.id);
-
   const handlePick = (t: TranslationMeta) => {
-    if (isUnavailable(t) || t.id === excludeId) return;
+    if (t.id === excludeId) return;
     onSelect(t.id);
     onOpenChange(false);
   };
@@ -90,9 +87,8 @@ export function TranslationPicker({
                 </p>
                 <div className="space-y-1">
                   {items.map((t) => {
-                    const unavailable = isUnavailable(t);
                     const active = t.id === value;
-                    const disabled = unavailable || t.id === excludeId;
+                    const disabled = t.id === excludeId;
                     return (
                       <button
                         key={t.id}
@@ -117,14 +113,9 @@ export function TranslationPicker({
                                 <WifiOff className="h-3 w-3" /> Offline
                               </Badge>
                             )}
-                            {unavailable && (
-                              <Badge variant="outline" className="gap-1 text-[10px]">
-                                Unavailable
-                              </Badge>
-                            )}
                           </span>
                           <span className="block text-sm text-muted-foreground">
-                            {unavailable ? "This version was not returned by the connected provider." : t.blurb}
+                            {t.blurb}
                           </span>
                         </span>
                         {active && <Check className="h-4 w-4 text-primary shrink-0 mt-1" />}

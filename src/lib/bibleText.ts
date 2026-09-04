@@ -197,7 +197,8 @@ export async function getTranslationAvailability(): Promise<TranslationAvailabil
 
 /** Ids to present in reader features. Outages remain permissive so controls never disappear. */
 export async function getAvailableTranslationIds(): Promise<Set<string>> {
-  return (await getTranslationAvailability()).ids;
+  await getTranslationAvailability();
+  return new Set(TRANSLATIONS.map((translation) => translation.id));
 }
 
 function unionWithCodes(base: Set<string>, codes: string[]) {

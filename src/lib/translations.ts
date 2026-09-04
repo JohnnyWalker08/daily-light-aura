@@ -3,7 +3,7 @@
 // seeded/offline for KJV). Licensed versions are served through the
 // `bible-text` edge function, which holds the YouVersion Platform key
 // server-side. Availability of licensed versions depends on publisher
-// approval on the YouVersion developer account, so it is checked at runtime.
+// access on the connected provider, so reachability is checked at runtime.
 
 export type TranslationProvider = "bible-api" | "youversion";
 
