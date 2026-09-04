@@ -43,6 +43,43 @@ function yvFetch(path: string, key: string) {
   });
 }
 
+type YouVersionBible = {
+  id: string;
+  abbrev?: string;
+  title?: string;
+};
+
+async function fetchYouVersionBibles(key: string, allAvailable = false): Promise<YouVersionBible[]> {
+  const versions: YouVersionBible[] = [];
+  let pageToken = "";
+
+  for (let page = 0; page < 20; page += 1) {
+    const params = new URLSearchParams({
+      "language_ranges[]": "eng",
+      page_size: "99",
+    });
+    if (allAvailable) params.set("all_available", "true");
+    if (pageToken) params.set("page_token", pageToken);
+
+    const res = await yvFetch(`/v1/bibles?${params.toString()}`, key);
+    if (!res.ok) throw Object.assign(new Error("version_catalog_unavailable"), { status: res.status });
+    const payload = await res.json();
+    const rows = Array.isArray(payload?.data) ? payload.data : [];
+    for (const version of rows) {
+      versions.push({
+        id: String(version.id),
+        abbrev: version.localized_abbreviation || version.abbreviation,
+        title: version.localized_title || version.title,
+      });
+    }
+
+    pageToken = String(payload?.next_page_token || payload?.pagination?.next_page_token || "");
+    if (!pageToken || rows.length === 0) break;
+  }
+
+  return versions;
+}
+
 function decodeEntities(s: string) {
   return s
     .replace(/&nbsp;/g, " ")
@@ -154,7 +191,7 @@ async function fetchChapter(
       `&include-headings=false&include-footnotes=false&include-passage-references=false` +
       `&include-short-copyright=false&include-verse-numbers=true&indent-paragraphs=0`;
     const res = await fetch(url, { headers: { Authorization: `Token ${keys.esv}` } });
-    if (!res.ok) return { error: "unavailable", status: res.status };
+    if (!res.ok) return { error: res.status === 401 || res.status === 403 ? "access_denied" : "unavailable", status: res.status };
     const payload = await res.json();
     const verses = parseEsvText(String((payload?.passages || []).join("\n")));
     return { verses, reference: ref };
@@ -164,7 +201,7 @@ async function fetchChapter(
     if (!keys.nlt) return { error: "missing_key" };
     const url = `https://api.nlt.to/api/passages?ref=${encodeURIComponent(ref)}&version=NLT&key=${encodeURIComponent(keys.nlt)}`;
     const res = await fetch(url);
-    if (!res.ok) return { error: "unavailable", status: res.status };
+    if (!res.ok) return { error: res.status === 401 || res.status === 403 ? "access_denied" : "unavailable", status: res.status };
     const html = await res.text();
     return { verses: parseNltHtml(html), reference: ref };
   }
@@ -175,7 +212,7 @@ async function fetchChapter(
     const path = verse ? "verses" : "chapters";
     const url = `https://api.scripture.api.bible/v1/bibles/${code}/${path}/${id}?content-type=html&include-notes=false&include-titles=false&include-verse-numbers=true`;
     const res = await fetch(url, { headers: { "api-key": keys.apibible } });
-    if (!res.ok) return { error: "unavailable", status: res.status };
+    if (!res.ok) return { error: res.status === 401 || res.status === 403 ? "access_denied" : "unavailable", status: res.status };
     const payload = await res.json();
     const verses = parseApiBibleHtml(String(payload?.data?.content || ""));
     return { verses, reference: payload?.data?.reference || ref };
@@ -184,14 +221,14 @@ async function fetchChapter(
   // default: YouVersion
   if (!keys.youversion) return { error: "missing_key" };
   if (verse) {
-    const res = await yvFetch(`/v1/bibles/${code}/passages/${usfm}.${chapter}.${verse}`, keys.youversion);
-    if (!res.ok) return { error: "unavailable", status: res.status };
+    const res = await yvFetch(`/v1/bibles/${code}/passages/${usfm}.${chapter}.${verse}?format=text`, keys.youversion);
+    if (!res.ok) return { error: res.status === 401 || res.status === 403 ? "access_denied" : "unavailable", status: res.status };
     const payload = await res.json();
     const text = clean(String(payload?.content || ""));
     return { verses: text ? [{ verse, text }] : [], reference: payload?.reference || ref };
   }
   const res = await yvFetch(`/v1/bibles/${code}/passages/${usfm}.${chapter}?format=html`, keys.youversion);
-  if (!res.ok) return { error: "unavailable", status: res.status };
+  if (!res.ok) return { error: res.status === 401 || res.status === 403 ? "access_denied" : "unavailable", status: res.status };
   const payload = await res.json();
   return { verses: parseChapterHtml(String(payload?.content || "")), reference: payload?.reference || ref };
 }
@@ -246,11 +283,8 @@ Deno.serve(async (req) => {
           return json({ ok: true, bibles });
         }
         // youversion
-        const res = await yvFetch(`/v1/bibles?language_ranges[]=eng`, key);
-        if (!res.ok) return json({ ok: false, status: res.status });
-        const payload = await res.json();
-        const versions = (payload?.data || []).map((v: any) => String(v.id));
-        return json({ ok: true, versions });
+        const versions = await fetchYouVersionBibles(key);
+        return json({ ok: true, versions: versions.map((version) => version.id) });
       } catch (error) {
         return json({ ok: false, error: String((error as Error)?.message || error) });
       }
@@ -259,15 +293,16 @@ Deno.serve(async (req) => {
     // --- Which licensed versions are reachable right now --------------------
     if (action === "versions") {
       if (!keys.youversion) return json({ versions: [] });
-      const res = await yvFetch(`/v1/bibles?language_ranges[]=eng`, keys.youversion);
-      if (!res.ok) return json({ versions: [], status: res.status });
-      const payload = await res.json();
-      const versions = (payload?.data || []).map((v: any) => ({
-        id: String(v.id),
-        abbrev: v.localized_abbreviation || v.abbreviation,
-        title: v.localized_title || v.title,
-      }));
-      return json({ versions });
+      try {
+        const [versions, catalog] = await Promise.all([
+          fetchYouVersionBibles(keys.youversion),
+          fetchYouVersionBibles(keys.youversion, true),
+        ]);
+        return json({ versions, catalog });
+      } catch (error) {
+        const status = Number((error as { status?: number })?.status || 502);
+        return json({ error: "catalog_unreachable", providerStatus: status }, 502);
+      }
     }
 
     const provider = String(body.provider ?? url.searchParams.get("provider") ?? "youversion");
@@ -281,7 +316,10 @@ Deno.serve(async (req) => {
     if (!Number.isFinite(chapter) || chapter < 1) return json({ error: "bad_chapter" }, 400);
 
     const result = await fetchChapter(provider, version, book, chapter, verse, keys);
-    if ("error" in result) return json(result, result.error === "missing_key" ? 503 : 502);
+    if ("error" in result) {
+      const status = result.error === "missing_key" ? 503 : result.error === "access_denied" ? 403 : 502;
+      return json({ ...result, providerStatus: result.status }, status);
+    }
     if (!result.verses.length) return json({ error: "empty" }, 502);
 
     return json({

@@ -346,14 +346,14 @@ export default function Bible() {
               </Button>
             </div>
 
-            <div className="flex gap-2 sm:ml-auto flex-wrap justify-center">
+            <div className="grid w-full grid-cols-2 gap-2 sm:ml-auto sm:flex sm:w-auto sm:flex-wrap sm:justify-end">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setShowTranslationPicker(true)}
                 title="Change translation"
               >
-                <Languages className="h-4 w-4 sm:mr-2" />
+                <Languages className="h-4 w-4 mr-2" />
                 <span className="font-semibold">{getTranslation(translation).abbrev}</span>
               </Button>
               <Button
@@ -362,14 +362,14 @@ export default function Bible() {
                 onClick={() => (compareTranslation ? setCompareTranslation(null) : setShowComparePicker(true))}
                 title="Compare translations side by side"
               >
-                <Columns2 className="h-4 w-4 sm:mr-2" />
-                <span className="hidden sm:inline">
+                <Columns2 className="h-4 w-4 mr-2" />
+                <span>
                   {compareTranslation ? getTranslation(compareTranslation).abbrev : "Compare"}
                 </span>
               </Button>
               <Button variant="outline" size="sm" onClick={() => setNoteEditor({})} title="Add chapter note">
-                <FileText className="h-4 w-4 sm:mr-2" />
-                <span className="hidden sm:inline">Note</span>
+                <FileText className="h-4 w-4 mr-2" />
+                <span>Note</span>
               </Button>
               <Button 
                 variant={chapterRead ? "secondary" : "default"} 
@@ -378,25 +378,22 @@ export default function Bible() {
                 disabled={chapterRead} 
                 className={!chapterRead ? "bg-gradient-to-r from-primary to-primary-glow" : ""}
               >
-                <CheckCircle2 className="h-4 w-4 sm:mr-2" />
-                <span className="hidden sm:inline">{chapterRead ? "Read" : "Mark Read"}</span>
+                <CheckCircle2 className="h-4 w-4 mr-2" />
+                <span>{chapterRead ? "Read" : "Mark Read"}</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowSettingsPanel(true)}
+                className="col-span-2 sm:col-span-1"
+                title="Reading settings"
+              >
+                <Settings2 className="h-4 w-4 mr-2" />
+                <span>Reading settings</span>
               </Button>
             </div>
           </div>
         </Card>
-
-
-        {/* Settings Toggle Button - floating in corner */}
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => setShowSettingsPanel(true)}
-          className="fixed top-24 right-4 z-30 h-10 w-10 rounded-full shadow-lg bg-background/80 backdrop-blur-sm"
-          title="Reading settings"
-        >
-          <Settings2 className="h-5 w-5" />
-        </Button>
-
         {/* Verse Content - Improved Readability */}
         <Card className="glass-card p-6 sm:p-8">
           {loading ? (
