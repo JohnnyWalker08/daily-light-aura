@@ -138,24 +138,30 @@ export async function loadVerseText(
 const AVAILABILITY_KEY = "dailylight_available_versions";
 const AVAILABILITY_TTL = 1000 * 60 * 60 * 24;
 
-let availabilityPromise: Promise<Set<string>> | null = null;
+export interface TranslationAvailability {
+  ids: Set<string>;
+  status: "checking" | "verified" | "unreachable";
+}
+
+let availabilityPromise: Promise<TranslationAvailability> | null = null;
 
 export function clearAvailabilityCache() {
   localStorage.removeItem(AVAILABILITY_KEY);
   availabilityPromise = null;
 }
 
-/** Ids of translations that can actually be read right now. */
-export async function getAvailableTranslationIds(): Promise<Set<string>> {
+/** Availability without mistaking a temporary provider outage for a licence denial. */
+export async function getTranslationAvailability(): Promise<TranslationAvailability> {
   const always = new Set(TRANSLATIONS.filter((t) => t.provider === "bible-api").map((t) => t.id));
   for (const id of keyUnlockedTranslationIds(getProviderKeys(), getApiBibleIds())) always.add(id);
+  const permissive = new Set(TRANSLATIONS.map((translation) => translation.id));
 
   try {
     const raw = localStorage.getItem(AVAILABILITY_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Date.now() - parsed.at < AVAILABILITY_TTL && Array.isArray(parsed.codes)) {
-        return unionWithCodes(always, parsed.codes);
+        return { ids: unionWithCodes(always, parsed.codes), status: "verified" };
       }
     }
   } catch {
@@ -170,13 +176,16 @@ export async function getAvailableTranslationIds(): Promise<Set<string>> {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action: "versions", keys: getProviderKeys() }),
         });
-        if (!res.ok) return always;
+        if (!res.ok) return { ids: permissive, status: "unreachable" } as TranslationAvailability;
         const data = await res.json();
+        if (!Array.isArray(data?.versions)) {
+          return { ids: permissive, status: "unreachable" } as TranslationAvailability;
+        }
         const codes: string[] = (data?.versions || []).map((v: any) => String(v.id));
         localStorage.setItem(AVAILABILITY_KEY, JSON.stringify({ at: Date.now(), codes }));
-        return unionWithCodes(always, codes);
+        return { ids: unionWithCodes(always, codes), status: "verified" } as TranslationAvailability;
       } catch {
-        return always;
+        return { ids: permissive, status: "unreachable" } as TranslationAvailability;
       } finally {
         availabilityPromise = null;
       }
@@ -184,6 +193,11 @@ export async function getAvailableTranslationIds(): Promise<Set<string>> {
   }
 
   return availabilityPromise;
+}
+
+/** Ids to present in reader features. Outages remain permissive so controls never disappear. */
+export async function getAvailableTranslationIds(): Promise<Set<string>> {
+  return (await getTranslationAvailability()).ids;
 }
 
 function unionWithCodes(base: Set<string>, codes: string[]) {

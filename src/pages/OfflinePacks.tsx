@@ -26,7 +26,9 @@ import { TRANSLATION_GROUPS, TRANSLATIONS } from "@/lib/translations";
 
 export default function OfflinePacks() {
   const [stats, setStats] = useState<Record<string, number>>({});
-  const [available, setAvailable] = useState<Set<string>>(new Set(["kjv"]));
+  const [available, setAvailable] = useState<Set<string>>(
+    new Set(TRANSLATIONS.map((translation) => translation.id))
+  );
   const [scope, setScope] = useState<PackScope>("whole");
   const [busy, setBusy] = useState<string | null>(null);
   const [progress, setProgress] = useState({ current: 0, total: 0 });

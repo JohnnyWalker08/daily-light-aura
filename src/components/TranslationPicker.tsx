@@ -3,9 +3,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Check, Lock, Search, WifiOff } from "lucide-react";
+import { Check, Search, WifiOff } from "lucide-react";
 import { TRANSLATIONS, TRANSLATION_GROUPS, type TranslationMeta } from "@/lib/translations";
-import { getAvailableTranslationIds } from "@/lib/bibleText";
+import { getTranslationAvailability, type TranslationAvailability } from "@/lib/bibleText";
 
 interface TranslationPickerProps {
   open: boolean;
@@ -26,11 +26,17 @@ export function TranslationPicker({
   excludeId,
 }: TranslationPickerProps) {
   const [query, setQuery] = useState("");
-  const [available, setAvailable] = useState<Set<string> | null>(null);
+  const [availability, setAvailability] = useState<TranslationAvailability>({
+    ids: new Set(TRANSLATIONS.map((translation) => translation.id)),
+    status: "checking",
+  });
 
   useEffect(() => {
     if (!open) return;
-    getAvailableTranslationIds().then(setAvailable).catch(() => setAvailable(null));
+    setAvailability((current) => ({ ...current, status: "checking" }));
+    getTranslationAvailability().then(setAvailability).catch(() => {
+      setAvailability({ ids: new Set(TRANSLATIONS.map((translation) => translation.id)), status: "unreachable" });
+    });
   }, [open]);
 
   const filtered = useMemo(() => {
@@ -44,11 +50,11 @@ export function TranslationPicker({
     );
   }, [query]);
 
-  const isLocked = (t: TranslationMeta) =>
-    t.provider === "youversion" && available !== null && !available.has(t.id);
+  const isUnavailable = (t: TranslationMeta) =>
+    availability.status === "verified" && t.provider === "youversion" && !availability.ids.has(t.id);
 
   const handlePick = (t: TranslationMeta) => {
-    if (isLocked(t) || t.id === excludeId) return;
+    if (isUnavailable(t) || t.id === excludeId) return;
     onSelect(t.id);
     onOpenChange(false);
   };
@@ -84,9 +90,9 @@ export function TranslationPicker({
                 </p>
                 <div className="space-y-1">
                   {items.map((t) => {
-                    const locked = isLocked(t);
+                    const unavailable = isUnavailable(t);
                     const active = t.id === value;
-                    const disabled = locked || t.id === excludeId;
+                    const disabled = unavailable || t.id === excludeId;
                     return (
                       <button
                         key={t.id}
@@ -111,14 +117,14 @@ export function TranslationPicker({
                                 <WifiOff className="h-3 w-3" /> Offline
                               </Badge>
                             )}
-                            {locked && (
+                            {unavailable && (
                               <Badge variant="outline" className="gap-1 text-[10px]">
-                                <Lock className="h-3 w-3" /> Locked
+                                Unavailable
                               </Badge>
                             )}
                           </span>
                           <span className="block text-sm text-muted-foreground">
-                            {locked ? "Awaiting publisher approval on your YouVersion account." : t.blurb}
+                            {unavailable ? "This version was not returned by the connected provider." : t.blurb}
                           </span>
                         </span>
                         {active && <Check className="h-4 w-4 text-primary shrink-0 mt-1" />}
@@ -130,10 +136,11 @@ export function TranslationPicker({
             );
           })}
 
-          <p className="px-4 pt-2 text-xs text-muted-foreground">
-            Licensed versions are delivered through YouVersion. Locked ones unlock automatically once the
-            publisher approves them for your developer account.
-          </p>
+          {availability.status === "unreachable" && (
+            <p className="px-4 pt-2 text-xs text-muted-foreground">
+              The version catalog could not be refreshed. You can still open any version and use text already saved offline.
+            </p>
+          )}
         </ScrollArea>
       </DialogContent>
     </Dialog>

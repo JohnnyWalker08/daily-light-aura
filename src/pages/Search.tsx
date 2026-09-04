@@ -25,7 +25,9 @@ export default function Search() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
-  const [available, setAvailable] = useState<Set<string>>(new Set(["kjv"]));
+  const [available, setAvailable] = useState<Set<string>>(
+    new Set(TRANSLATIONS.map((translation) => translation.id))
+  );
   const [selected, setSelected] = useState<string[]>(() => {
     try {
       const raw = localStorage.getItem(SEARCH_SET_KEY);
@@ -215,7 +217,10 @@ export default function Search() {
                             {perVersion[id] && (
                               <button
                                 className="text-xs text-primary"
-                                onClick={() => handleBookmark(result, id, perVersion[id]!)}
+                                onClick={() => {
+                                  const text = perVersion[id];
+                                  if (text) handleBookmark(result, id, text);
+                                }}
                               >
                                 save
                               </button>
