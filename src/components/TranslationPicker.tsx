@@ -113,6 +113,13 @@ export function TranslationPicker({
                                 <WifiOff className="h-3 w-3" /> Offline
                               </Badge>
                             )}
+                            {availability.status === "verified" &&
+                              t.provider === "youversion" &&
+                              !availability.ids.has(t.id) && (
+                                <Badge variant="outline" className="text-[10px] shrink-0">
+                                  Connect key
+                                </Badge>
+                              )}
                           </span>
                           <span className="block text-sm text-muted-foreground">
                             {t.blurb}
