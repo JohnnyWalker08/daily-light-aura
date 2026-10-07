@@ -156,7 +156,15 @@ export default function Bible() {
       setVerses(data);
     } catch (error) {
       console.error("Chapter loading failed", error);
-      toast.error("Failed to load chapter");
+      const meta = getTranslation(translation);
+      if (meta.provider === "youversion") {
+        toast.error(`${meta.abbrev} isn't served by the Bible key connected to this app`, {
+          description: "Connect the key that includes it, or a direct publisher key, and it opens instantly.",
+          action: { label: "Connect key", onClick: () => navigate("/settings/licensing") },
+        });
+      } else {
+        toast.error("Couldn't load this chapter. Check your connection and try again.");
+      }
     } finally {
       setLoading(false);
     }
