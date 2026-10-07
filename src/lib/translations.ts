@@ -54,6 +54,10 @@ export const TRANSLATIONS: TranslationMeta[] = [
   { id: "lsv", abbrev: "LSV", name: "Literal Standard Version", provider: "youversion", providerCode: "2660", group: "Study", blurb: "Highly literal, consistent word choices." },
   { id: "ylt", abbrev: "YLT", name: "Young's Literal Translation", provider: "bible-api", providerCode: "ylt", group: "Study", blurb: "Extremely literal, word-for-word." },
   { id: "fbv", abbrev: "FBV", name: "Free Bible Version", provider: "youversion", providerCode: "1932", group: "Study", blurb: "Translated from the original languages, freely shared." },
+  { id: "tcent", abbrev: "TCENT", name: "Text-Critical English New Testament", provider: "youversion", providerCode: "3427", group: "Study", blurb: "New Testament with careful attention to the manuscripts." },
+  { id: "webus", abbrev: "WEBUS", name: "World English Bible (American)", provider: "youversion", providerCode: "206", group: "Classic", blurb: "Modern public-domain English, American spelling." },
+  { id: "wmb", abbrev: "WMB", name: "World Messianic Bible", provider: "youversion", providerCode: "1209", group: "Classic", blurb: "World English Bible with Hebrew names." },
+  { id: "cpdv", abbrev: "CPDV", name: "Catholic Public Domain Version", provider: "youversion", providerCode: "42", group: "Classic", blurb: "Modern English rendering of the Latin Vulgate." },
 ];
 
 export const DEFAULT_TRANSLATION_ID = "kjv";
